@@ -49,6 +49,9 @@ DISCORD_BOOSTS             = Gauge('discord_boosts',
 DISCORD_MESSAGES           = Counter('discord_messages',
                                      'The number of messages sent on a Guild by a Member.',
                                      ['guild','member'])
+DISCORD_REACTIONS           = Counter('discord_reactions',
+                                     'The number of messages sent on a Guild by a Member.',
+                                     ['guild','member'])
 
 print(f'{mynow()} [Exporter][✓] Metrics defined')
 
@@ -148,6 +151,15 @@ async def on_message(ctx):
             DISCORD_MESSAGES.labels(guild = ctx.guild, member = ctx.author).inc()
     except Exception as e:
         print(f'{mynow()} [Exporter][on_message] Unable to retrieve data [{e}]')
+
+@client.event
+async def on_reaction_add(reaction, member):
+    try:
+        if member.bot is False:
+            DISCORD_REACTIONS.labels(guild = member.guild, member = member).inc()
+    except Exception as e:
+        print(f'{mynow()} [Exporter][on_reaction_add] Unable to retrieve data [{e}]')
+
 # Run Discord client
 iter = 0
 while iter < 5:
