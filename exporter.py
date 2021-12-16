@@ -32,8 +32,14 @@ DISCORD_PING               = Gauge('discord_latency',
 DISCORD_MEMBERS_REGISTERED = Gauge('discord_members_registered',
                                    'The number of connected members on a Guild.',
                                    ['guild'])
+DISCORD_MEMBERS_ONLINE     = Gauge('discord_members_online',
+                                   'The number of online members on a Guild.',
+                                   ['guild'])
 DISCORD_BOTS_REGISTERED    = Gauge('discord_bots_registered',
                                    'The number of connected bots on a Guild.',
+                                   ['guild'])
+DISCORD_BOTS_ONLINE        = Gauge('discord_bots_online',
+                                   'The number of online bots on a Guild.',
                                    ['guild'])
 
 print(f'{mynow()} [Exporter][✓] Metrics defined')
@@ -87,9 +93,31 @@ async def request_registered(timer):
 
         await asyncio.sleep(timer)
 
+async def request_online(timer):
+    while client.is_ready:
+        try:
+            if client.guilds:
+                members_online = 0
+                bots_online    = 0
+                for guild in client.guilds:
+                    for member in guild.members:
+                        if member.bot is False:
+                            if member.status is not discord.Status.offline:
+                                members_online += 1
+                        else:
+                            if member.status is not discord.Status.offline:
+                                bots_online += 1
+                    DISCORD_BOTS_ONLINE.labels(guild = guild).set(bots_online)
+                    DISCORD_MEMBERS_ONLINE.labels(guild = guild).set(members_online)
+        except Exception as e:
+            print(f'{mynow()} [Exporter][request_members_online] Unable to retrieve data [{e}]')
+
+        await asyncio.sleep(timer)
+
 # Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
 client.loop.create_task(request_ping(POLLING_INTERVAL))
 client.loop.create_task(request_registered(POLLING_INTERVAL))
+client.loop.create_task(request_online(POLLING_INTERVAL))
 
 start_http_server(EXPORTER_PORT)
 
