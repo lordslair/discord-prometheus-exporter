@@ -45,6 +45,10 @@ DISCORD_BOOSTS             = Gauge('discord_boosts',
                                    'The number of Server Boosts on a Guild.',
                                    ['guild'])
 
+# Counters
+DISCORD_MESSAGES           = Counter('discord_messages',
+                                     'The number of messages sent on a Guild by a Member.',
+                                     ['guild','member'])
 
 print(f'{mynow()} [Exporter][✓] Metrics defined')
 
@@ -137,6 +141,13 @@ client.loop.create_task(request_boost(POLLING_INTERVAL))
 
 start_http_server(EXPORTER_PORT)
 
+@client.event
+async def on_message(ctx):
+    try:
+        if ctx.author.bot is False:
+            DISCORD_MESSAGES.labels(guild = ctx.guild, member = ctx.author).inc()
+    except Exception as e:
+        print(f'{mynow()} [Exporter][on_message] Unable to retrieve data [{e}]')
 # Run Discord client
 iter = 0
 while iter < 5:
