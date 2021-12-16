@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+import os
 import time
 
 from prometheus_client  import start_http_server, Gauge, Counter
@@ -16,11 +17,12 @@ import asyncio
 import discord
 
 # Log Discord imports
-print(f'{mynow()} [Exporter][✓] Discord  imports')
+print(f'{mynow()} [Exporter][✓] Discord imports')
 
 # Exporter variables
-DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
-EXPORTER_PORT = os.environ['EXPORTER_PORT']
+DISCORD_TOKEN    = os.environ['DISCORD_TOKEN']
+EXPORTER_PORT    = int(os.environ['EXPORTER_PORT'])
+POLLING_INTERVAL = int(os.environ['POLLING_INTERVAL'])
 print(f'{mynow()} [Exporter][✓] Listening on :{EXPORTER_PORT}')
 
 # Metrics definition
@@ -55,7 +57,6 @@ async def request_ping(timer):
         else:
             try:
                 DISCORD_PING.set(latency)
-                print(DISCORD_PING, latency)
             except Exception as e:
                 print(f'{mynow()} [Exporter][request_ping] Unable to set DISCORD_PING')
 
