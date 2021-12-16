@@ -29,6 +29,12 @@ print(f'{mynow()} [Exporter][✓] Listening on :{EXPORTER_PORT}')
 # Gauges
 DISCORD_PING               = Gauge('discord_latency',
                                    'The time in milliseconds that discord took to respond to a REST request.')
+DISCORD_MEMBERS_REGISTERED = Gauge('discord_members_registered',
+                                   'The number of connected members on a Guild.',
+                                   ['guild'])
+DISCORD_BOTS_REGISTERED    = Gauge('discord_bots_registered',
+                                   'The number of connected bots on a Guild.',
+                                   ['guild'])
 
 print(f'{mynow()} [Exporter][✓] Metrics defined')
 
@@ -62,6 +68,28 @@ async def request_ping(timer):
 
         await asyncio.sleep(timer)
 
+async def request_registered(timer):
+    while client.is_ready:
+        try:
+            if client.guilds:
+                members_registered = 0
+                bots_registered    = 0
+                for guild in client.guilds:
+                    for member in guild.members:
+                        if member.bot is False:
+                            members_registered += 1
+                        else:
+                            bots_registered += 1
+                    DISCORD_BOTS_REGISTERED.labels(guild = guild).set(bots_registered)
+                    DISCORD_MEMBERS_REGISTERED.labels(guild = guild).set(members_registered)
+        except Exception as e:
+            print(f'{mynow()} [Exporter][request_members_registered] Unable to retrieve data [{e}]')
+
+        await asyncio.sleep(timer)
+
+# Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
+client.loop.create_task(request_ping(POLLING_INTERVAL))
+client.loop.create_task(request_registered(POLLING_INTERVAL))
 
 start_http_server(EXPORTER_PORT)
 
