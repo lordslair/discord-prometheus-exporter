@@ -41,6 +41,10 @@ DISCORD_BOTS_REGISTERED    = Gauge('discord_bots_registered',
 DISCORD_BOTS_ONLINE        = Gauge('discord_bots_online',
                                    'The number of online bots on a Guild.',
                                    ['guild'])
+DISCORD_BOOSTS             = Gauge('discord_boosts',
+                                   'The number of Server Boosts on a Guild.',
+                                   ['guild'])
+
 
 print(f'{mynow()} [Exporter][✓] Metrics defined')
 
@@ -114,10 +118,22 @@ async def request_online(timer):
 
         await asyncio.sleep(timer)
 
+async def request_boost(timer):
+    while client.is_ready:
+        try:
+            if client.guilds:
+                for guild in client.guilds:
+                    DISCORD_BOOSTS.labels(guild = guild).set(guild.premium_subscription_count)
+        except Exception as e:
+            print(f'{mynow()} [Exporter][request_boost] Unable to retrieve data [{e}]')
+
+        await asyncio.sleep(timer)
+
 # Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
 client.loop.create_task(request_ping(POLLING_INTERVAL))
 client.loop.create_task(request_registered(POLLING_INTERVAL))
 client.loop.create_task(request_online(POLLING_INTERVAL))
+client.loop.create_task(request_boost(POLLING_INTERVAL))
 
 start_http_server(EXPORTER_PORT)
 
