@@ -104,7 +104,7 @@ async def request_registered(timer):
                     DISCORD_BOTS_REGISTERED.labels(guild = guild).set(bots_registered)
                     DISCORD_MEMBERS_REGISTERED.labels(guild = guild).set(members_registered)
         except Exception as e:
-            print(f'{mynow()} [Exporter][request_members_registered] Unable to retrieve data [{e}]')
+            print(f'{mynow()} [Exporter][request_registered] Unable to retrieve data [{e}]')
 
         await asyncio.sleep(timer)
 
@@ -125,7 +125,7 @@ async def request_online(timer):
                     DISCORD_BOTS_ONLINE.labels(guild = guild).set(bots_online)
                     DISCORD_MEMBERS_ONLINE.labels(guild = guild).set(members_online)
         except Exception as e:
-            print(f'{mynow()} [Exporter][request_members_online] Unable to retrieve data [{e}]')
+            print(f'{mynow()} [Exporter][request_online] Unable to retrieve data [{e}]')
 
         await asyncio.sleep(timer)
 
