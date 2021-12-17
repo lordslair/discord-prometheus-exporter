@@ -20,10 +20,14 @@ import discord
 print(f'{mynow()} [Exporter][✓] Discord imports')
 
 # Exporter variables
-DISCORD_TOKEN    = os.environ['DISCORD_TOKEN']
-EXPORTER_PORT    = int(os.environ['EXPORTER_PORT'])
-POLLING_INTERVAL = int(os.environ['POLLING_INTERVAL'])
+DISCORD_TOKEN    = os.getenv('DISCORD_TOKEN', None)
+if DISCORD_TOKEN is None:
+    print(f'{mynow()} [Exporter][✗] ENV var DISCORD_TOKEN not found')
+    exit()
+EXPORTER_PORT    = int(os.getenv('EXPORTER_PORT', '8080'))
+POLLING_INTERVAL = int(os.getenv('POLLING_INTERVAL', 10))
 print(f'{mynow()} [Exporter][✓] Listening on :{EXPORTER_PORT}')
+print(f'{mynow()} [Exporter][✓] Polling interval {POLLING_INTERVAL}s')
 
 # Metrics definition
 # Gauges
