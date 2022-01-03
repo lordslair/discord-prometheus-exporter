@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  namespace: monitoring
+  name: discord-prometheus-exporter
+  labels:
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord
+      tier: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: discord
+        tier: backend
+    spec:
+      restartPolicy: Always
+
+      containers:
+      - name: discord-prometheus-exporter
+        image: lordslair/discord-prometheus-exporter:latest
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: 32Mi
+            cpu: 50m
+          requests:
+            memory: 32Mi
+            cpu: 10m
+        env:
+        # Discord env vars
+        #- name: EXPORTER_PORT
+        #  value: '8080'
+        #- name: POLLING_INTERVAL
+        #  value: '10'
+        - name: DISCORD_TOKEN
+          value: '<YOUR_DISCORD_BOT_TOKEN>'
+        # Other env vars
+        - name: PYTHONUNBUFFERED
+          value: 'True'
+        - name: PYTHONIOENCODING
+          value: 'UTF-8'
