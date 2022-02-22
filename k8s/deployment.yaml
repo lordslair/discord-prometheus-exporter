@@ -42,7 +42,3 @@ spec:
         - name: DISCORD_TOKEN
           value: '<YOUR_DISCORD_BOT_TOKEN>'
         # Other env vars
-        - name: PYTHONUNBUFFERED
-          value: 'True'
-        - name: PYTHONIOENCODING
-          value: 'UTF-8'

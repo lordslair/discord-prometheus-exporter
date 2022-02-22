@@ -7,6 +7,9 @@ COPY exporter.py     /exporter.py
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
+ENV PYTHONUNBUFFERED='True'
+ENV PYTHONIOENCODING='UTF-8'
+
 RUN apk update --no-cache \
     && apk add --no-cache python3 py3-pip \
     && apk add --no-cache --virtual .build-deps \
