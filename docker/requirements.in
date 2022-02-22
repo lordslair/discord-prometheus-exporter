@@ -1,0 +1,2 @@
+prometheus_client         ~= 0.12
+discord.py                ~= 1.7
