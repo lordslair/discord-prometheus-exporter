@@ -16,14 +16,16 @@ ENV PYTHONUNBUFFERED='True'
 ENV PYTHONIOENCODING='UTF-8'
 
 RUN apk update --no-cache \
-    && apk add --no-cache python3 py3-pip \
+    && apk add --no-cache python3 \
     && apk add --no-cache --virtual .build-deps \
                                     gcc \
                                     libc-dev \
                                     libffi-dev \
                                     python3-dev \
                                     tzdata \
-    && pip3 install -U -r /requirements.txt \
+    && cd /code \
+    && su exporter -c "python3 -m ensurepip --upgrade \
+                       && /code/.local/bin/pip3 install --user -U -r /requirements.txt" \
     && cp /usr/share/zoneinfo/Europe/Paris /etc/localtime \
     && apk del .build-deps \
     && rm /requirements.txt
