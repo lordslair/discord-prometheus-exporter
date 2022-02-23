@@ -23,15 +23,18 @@ Exporter variables :
 - `EXPORTER_PORT`: Listening port (Default: `8080`)
 - `POLLING_INTERVAL`: Interval in seconds between Discord calls (Default: `10`)
 
+ENV global variables :
+- `LOGURU_LEVEL`: Minimal level for log output (Default: `DEBUG`)
+
 ### Output on container start
 
 ```
-2021-12-17 12:02:20 [Exporter][✓] System imports
-2021-12-17 12:02:27 [Exporter][✓] Discord imports
-2021-12-17 12:02:27 [Exporter][✓] Listening on :8080
-2021-12-17 12:02:27 [Exporter][✓] Polling interval 10s
-2021-12-17 12:02:27 [Exporter][✓] Metrics defined
-2021-12-17 12:02:28 [Exporter][✓] Connection successed
+2022-02-23 11:58:26.497 | INFO     | __main__:<module>:11 - [Exporter][✓] System imports
+2022-02-23 11:58:32.996 | INFO     | __main__:<module>:17 - [Exporter][✓] Discord imports
+2022-02-23 11:58:32.997 | INFO     | __main__:<module>:26 - [Exporter][✓] Listening on :8080
+2022-02-23 11:58:32.997 | INFO     | __main__:<module>:27 - [Exporter][✓] Polling interval 20s
+2022-02-23 11:58:32.998 | INFO     | __main__:<module>:57 - [Exporter][✓] Metrics defined
+2022-02-23 11:58:33.498 | INFO     | __main__:<module>:69 - [Exporter][✓] Connection successed
 ```
 
 ### Exported metrics so far
@@ -56,6 +59,7 @@ I mainly used :
 * [kubernetes/kubernetes][kubernetes] to make everything smooth
 * [Alpine][alpine] - probably the best/lighter base container to work with
 * [Python] - as usual
+* [Loguru][loguru] - an amazingly easy logger
 
 And of course GitHub to store all these shenanigans.
 
@@ -112,7 +116,7 @@ The container is quite light, as [Alpine][alpine] is used as base.
 ```
 $ docker images
 REPOSITORY                              TAG       SIZE
-lordslair/discord-prometheus-exporter   latest    82.6MB
+lordslair/discord-prometheus-exporter   latest    79.9MB
 ```
 
 On the performance topic, the container consumes about :
@@ -131,4 +135,5 @@ Nothing else, but I'm open to requests and PR.
    [docker]: <https://github.com/docker/docker-ce>
    [alpine]: <https://github.com/alpinelinux>
    [promcord]: <https://github.com/nimarion/promcord>
+   [loguru]: <https://github.com/Delgan/loguru>
    [dashboard]: <https://github.com/lordslair/discord-prometheus-exporter/grafana/dashboard-DPE.json>
