@@ -98,7 +98,7 @@
             "uid": "${datasource}"
           },
           "exemplar": true,
-          "expr": "discord_latency*1000",
+          "expr": "sum(discord_latency*1000)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
