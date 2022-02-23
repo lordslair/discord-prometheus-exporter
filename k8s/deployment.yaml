@@ -42,3 +42,5 @@ spec:
         - name: DISCORD_TOKEN
           value: '<YOUR_DISCORD_BOT_TOKEN>'
         # Other env vars
+        #- name: LOGURU_LEVEL
+        #  value: 'DEBUG'

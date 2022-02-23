@@ -5,29 +5,26 @@ import os
 import time
 
 from prometheus_client  import start_http_server, Gauge, Counter
-from datetime           import datetime
-
-# Shorted definition for actual now() with proper format
-def mynow(): return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+from loguru             import logger
 
 # Log System imports
-print(f'{mynow()} [Exporter][✓] System imports')
+logger.info(f'[Exporter][✓] System imports')
 
 import asyncio
 import discord
 
 # Log Discord imports
-print(f'{mynow()} [Exporter][✓] Discord imports')
+logger.info(f'[Exporter][✓] Discord imports')
 
 # Exporter variables
 DISCORD_TOKEN    = os.getenv('DISCORD_TOKEN', None)
 if DISCORD_TOKEN is None:
-    print(f'{mynow()} [Exporter][✗] ENV var DISCORD_TOKEN not found')
+    logger.error(f'[Exporter][✗] ENV var DISCORD_TOKEN not found')
     exit()
 EXPORTER_PORT    = int(os.getenv('EXPORTER_PORT', '8080'))
 POLLING_INTERVAL = int(os.getenv('POLLING_INTERVAL', 10))
-print(f'{mynow()} [Exporter][✓] Listening on :{EXPORTER_PORT}')
-print(f'{mynow()} [Exporter][✓] Polling interval {POLLING_INTERVAL}s')
+logger.info(f'[Exporter][✓] Listening on :{EXPORTER_PORT}')
+logger.info(f'[Exporter][✓] Polling interval {POLLING_INTERVAL}s')
 
 # Metrics definition
 # Gauges
@@ -57,7 +54,7 @@ DISCORD_REACTIONS           = Counter('discord_reactions',
                                      'The number of messages sent on a Guild by a Member.',
                                      ['guild','member'])
 
-print(f'{mynow()} [Exporter][✓] Metrics defined')
+logger.info(f'[Exporter][✓] Metrics defined')
 
 try:
     # Intents are needed since 2020 for Mamber and Messages infos
@@ -67,9 +64,9 @@ try:
     intents.presences = True
     client = discord.Client(intents=intents)
 except Exception as e:
-    print(f'{mynow()} [Exporter][✗] Connection failed')
+    logger.error(f'[Exporter][✗] Connection failed')
 else:
-    print(f'{mynow()} [Exporter][✓] Connection successed')
+    logger.info(f'[Exporter][✓] Connection successed')
 
 #
 # Tasks definition
@@ -77,20 +74,22 @@ else:
 
 async def request_ping(timer):
     while client.is_ready:
+        logger.trace(f'[Exporter][✓] Enterng loop')
         try:
             latency = client.latency
         except Exception as e:
-            print(f'{mynow()} [Exporter][request_ping] Unable to retrieve data [{e}]')
+            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
         else:
             try:
                 DISCORD_PING.set(latency)
             except Exception as e:
-                print(f'{mynow()} [Exporter][request_ping] Unable to set DISCORD_PING')
+                logger.error(f'[Exporter] Unable to set DISCORD_PING')
 
         await asyncio.sleep(timer)
 
 async def request_registered(timer):
     while client.is_ready:
+        logger.trace(f'[Exporter][✓] Enterng loop')
         try:
             if client.guilds:
                 members_registered = 0
@@ -104,12 +103,13 @@ async def request_registered(timer):
                     DISCORD_BOTS_REGISTERED.labels(guild = guild).set(bots_registered)
                     DISCORD_MEMBERS_REGISTERED.labels(guild = guild).set(members_registered)
         except Exception as e:
-            print(f'{mynow()} [Exporter][request_registered] Unable to retrieve data [{e}]')
+            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
 
         await asyncio.sleep(timer)
 
 async def request_online(timer):
     while client.is_ready:
+        logger.trace(f'[Exporter][✓] Enterng loop')
         try:
             if client.guilds:
                 members_online = 0
@@ -125,18 +125,19 @@ async def request_online(timer):
                     DISCORD_BOTS_ONLINE.labels(guild = guild).set(bots_online)
                     DISCORD_MEMBERS_ONLINE.labels(guild = guild).set(members_online)
         except Exception as e:
-            print(f'{mynow()} [Exporter][request_online] Unable to retrieve data [{e}]')
+            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
 
         await asyncio.sleep(timer)
 
 async def request_boost(timer):
     while client.is_ready:
+        logger.trace(f'[Exporter][✓] Enterng loop')
         try:
             if client.guilds:
                 for guild in client.guilds:
                     DISCORD_BOOSTS.labels(guild = guild).set(guild.premium_subscription_count)
         except Exception as e:
-            print(f'{mynow()} [Exporter][request_boost] Unable to retrieve data [{e}]')
+            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
 
         await asyncio.sleep(timer)
 
@@ -154,7 +155,7 @@ async def on_message(ctx):
         if ctx.author.bot is False:
             DISCORD_MESSAGES.labels(guild = ctx.guild, member = ctx.author).inc()
     except Exception as e:
-        print(f'{mynow()} [Exporter][on_message] Unable to retrieve data [{e}]')
+        logger.error(f'[Exporter][on_message] Unable to retrieve data [{e}]')
 
 @client.event
 async def on_reaction_add(reaction, member):
@@ -162,7 +163,7 @@ async def on_reaction_add(reaction, member):
         if member.bot is False:
             DISCORD_REACTIONS.labels(guild = member.guild, member = member).inc()
     except Exception as e:
-        print(f'{mynow()} [Exporter][on_reaction_add] Unable to retrieve data [{e}]')
+        logger.error(f'[Exporter][on_reaction_add] Unable to retrieve data [{e}]')
 
 # Run Discord client
 iter = 0
@@ -171,7 +172,7 @@ while iter < 5:
         client.run(DISCORD_TOKEN)
         break
     except:
-        print(f'{mynow()} [Exporter][✗] Discord client.run failed (Attempt: {iter+1}/5) ')
+        logger.error(f'[Exporter][✗] Discord client.run failed (Attempt: {iter+1}/5) ')
         iter += 1
         time.sleep(5)
         continue

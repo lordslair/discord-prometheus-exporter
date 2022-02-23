@@ -16,6 +16,8 @@ discord-py==1.7.3
     # via -r ./requirements.in
 idna==3.3
     # via yarl
+loguru==0.6.0
+    # via -r ./requirements.in
 multidict==6.0.2
     # via
     #   aiohttp

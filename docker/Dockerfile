@@ -2,10 +2,13 @@ FROM alpine:3.15
 MAINTAINER @Lordslair
 
 COPY requirements.txt /requirements.txt
-COPY exporter.py     /exporter.py
+COPY exporter.py      /exporter.py
 
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+ENV LOGURU_COLORIZE='true'
+ENV LOGURU_DEBUG_COLOR='<cyan><bold>'
 
 ENV PYTHONUNBUFFERED='True'
 ENV PYTHONIOENCODING='UTF-8'
