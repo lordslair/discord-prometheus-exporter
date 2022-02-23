@@ -1,8 +1,10 @@
 FROM alpine:3.15
 MAINTAINER @Lordslair
 
-COPY requirements.txt /requirements.txt
-COPY exporter.py      /exporter.py
+RUN adduser -h /code -u 1000 -D -H exporter
+
+COPY                           requirements.txt  /requirements.txt
+COPY --chown=exporter:exporter exporter.py       /code/exporter.py
 
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
@@ -26,4 +28,8 @@ RUN apk update --no-cache \
     && apk del .build-deps \
     && rm /requirements.txt
 
-ENTRYPOINT ["/exporter.py"]
+USER exporter
+WORKDIR /code
+ENV PATH="/code/.local/bin:${PATH}"
+
+ENTRYPOINT ["/code/exporter.py"]
