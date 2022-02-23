@@ -282,7 +282,7 @@
             "uid": "${datasource}"
           },
           "exemplar": true,
-          "expr": "discord_boosts{guild=~\"$guild\"}",
+          "expr": "sum(discord_boosts{guild=~\"$guild\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
