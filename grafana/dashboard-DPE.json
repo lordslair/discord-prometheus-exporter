@@ -22,8 +22,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
-  "iteration": 1641230320791,
+  "id": 16,
+  "iteration": 1645573863144,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -95,7 +95,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "discord_latency*1000",
@@ -166,7 +166,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "sum(discord_messages_total{guild=~\"$guild\"}) by (guild)",
@@ -279,7 +279,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "discord_boosts{guild=~\"$guild\"}",
@@ -357,7 +357,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "sum(discord_members_registered{guild=~\"$guild\"} + discord_bots_registered{guild=~\"$guild\"})",
@@ -434,7 +434,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "sum(increase(discord_messages_total{guild=~\"$guild\"}[1m])) by (guild)",
@@ -540,7 +540,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "sum(discord_members_registered{guild=~\"$guild\"})",
@@ -618,7 +618,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "sum(discord_bots_registered{guild=~\"$guild\"})",
@@ -696,7 +696,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "sum(discord_members_online{guild=~\"$guild\"})",
@@ -767,7 +767,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": " topk(25, sum(discord_messages_total{guild=~\"$guild\",member=~\"$member\"})by(member))",
@@ -873,7 +873,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "count(sum(changes(discord_messages_total{member=~\"$member\",guild=~\"$guild\"}[1d]) > 0) by (member))",
@@ -944,7 +944,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": " topk(25, sum(discord_reactions_total{guild=~\"$guild\",member=~\"$member\"})by(member))",
@@ -1050,7 +1050,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "VxYL962nk"
+            "uid": "${datasource}"
           },
           "exemplar": true,
           "expr": "count(sum(changes(discord_messages_total{member=~\"$member\",guild=~\"$guild\"}[1w]) > 0) by (member))",
@@ -1087,7 +1087,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "VxYL962nk"
+          "uid": "${datasource}"
         },
         "definition": "discord_messages_total",
         "hide": 0,
@@ -1122,7 +1122,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "VxYL962nk"
+          "uid": "${datasource}"
         },
         "definition": "discord_messages_total",
         "hide": 0,
@@ -1143,11 +1143,28 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "Prometheus"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
       }
     ]
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -1178,6 +1195,6 @@
   "timezone": "",
   "title": "App | Discord Dashboard",
   "uid": "v6fNA4GcW",
-  "version": 14,
+  "version": 2,
   "weekStart": "monday"
 }
