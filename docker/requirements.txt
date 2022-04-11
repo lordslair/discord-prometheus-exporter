@@ -13,20 +13,18 @@ attrs==21.4.0
 chardet==4.0.0
     # via aiohttp
 discord-py==1.7.3
-    # via -r ./requirements.in
+    # via -r docker/requirements.in
 idna==3.3
     # via yarl
 loguru==0.6.0
-    # via -r ./requirements.in
+    # via -r docker/requirements.in
 multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
-prometheus-client==0.13.1
-    # via -r ./requirements.in
+prometheus-client==0.14.1
+    # via -r docker/requirements.in
 typing-extensions==4.1.1
-    # via
-    #   aiohttp
-    #   yarl
+    # via aiohttp
 yarl==1.7.2
     # via aiohttp
