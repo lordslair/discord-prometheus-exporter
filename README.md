@@ -29,12 +29,11 @@ ENV global variables :
 ### Output on container start
 
 ```
-2022-02-23 11:58:26.497 | INFO     | __main__:<module>:11 - [Exporter][✓] System imports
-2022-02-23 11:58:32.996 | INFO     | __main__:<module>:17 - [Exporter][✓] Discord imports
-2022-02-23 11:58:32.997 | INFO     | __main__:<module>:26 - [Exporter][✓] Listening on :8080
-2022-02-23 11:58:32.997 | INFO     | __main__:<module>:27 - [Exporter][✓] Polling interval 20s
-2022-02-23 11:58:32.998 | INFO     | __main__:<module>:57 - [Exporter][✓] Metrics defined
-2022-02-23 11:58:33.498 | INFO     | __main__:<module>:69 - [Exporter][✓] Connection successed
+2022-09-20 11:52:17.994 | INFO     | __main__:<module>:13 - [Exporter][✓] System imports
+2022-09-20 11:52:17.994 | INFO     | __main__:<module>:23 - [Exporter][✓] Listening on :8080
+2022-09-20 11:52:17.995 | INFO     | __main__:<module>:24 - [Exporter][✓] Polling interval 10s
+2022-09-20 11:52:18.088 | INFO     | __main__:<module>:70 - [Exporter][✓] Metrics defined
+2022-09-20 11:52:18.090 | INFO     | __main__:<module>:82 - [Exporter][✓] Connection OK
 ```
 
 ### Exported metrics so far
@@ -116,7 +115,7 @@ The container is quite light, as [Alpine][alpine] is used as base.
 ```
 $ docker images
 REPOSITORY                              TAG       SIZE
-lordslair/discord-prometheus-exporter   latest    79.9MB
+lordslair/discord-prometheus-exporter   latest    86.2MB
 ```
 
 On the performance topic, the container consumes about :
