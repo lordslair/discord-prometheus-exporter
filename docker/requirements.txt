@@ -5,15 +5,13 @@
 #    pip-compile docker/requirements.in
 #
 aiohttp==3.7.4.post0
-    # via discord-py
+    # via py-cord
 async-timeout==3.0.1
     # via aiohttp
 attrs==22.1.0
     # via aiohttp
 chardet==4.0.0
     # via aiohttp
-discord-py==1.7.3
-    # via -r docker/requirements.in
 idna==3.4
     # via yarl
 loguru==0.6.0
@@ -23,6 +21,8 @@ multidict==6.0.2
     #   aiohttp
     #   yarl
 prometheus-client==0.14.1
+    # via -r docker/requirements.in
+py-cord==2.0.1
     # via -r docker/requirements.in
 typing-extensions==4.3.0
     # via aiohttp
