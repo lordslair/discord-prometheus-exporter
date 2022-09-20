@@ -1,0 +1,4 @@
+[flake8]
+# E221: Multiple spaces before operator
+# E272: Multiple spaces before keyword
+extend-ignore = E221, E272
