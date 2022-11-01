@@ -16,6 +16,6 @@ updates:
       interval: "daily"
   # Maintain Dockerfile content
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/docker/"
     schedule:
       interval: "daily"
