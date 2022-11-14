@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:3.16.3
 
 RUN adduser -h /code -u 1000 -D -H exporter
 
