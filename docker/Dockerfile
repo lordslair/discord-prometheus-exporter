@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:3.16
 
 RUN adduser -h /code -u 1000 -D -H exporter
 
@@ -19,13 +19,13 @@ ENV PATH="/code/.local/bin:${PATH}"
 ENV TZ="Europe/Paris"
 
 RUN apk update --no-cache \
-    && apk add --no-cache python3=~3.9 \
+    && apk add --no-cache python3=~3.10 \
                           tzdata=~2022 \
     && apk add --no-cache --virtual .build-deps \
-                                    gcc=~10.3 \
+                                    gcc=~11.2 \
                                     libc-dev=~0.7 \
                                     libffi-dev=~3.4 \
-                                    python3-dev=~3.9 \
+                                    python3-dev=~3.10 \
     && su exporter -c "python3 -m ensurepip --upgrade \
                        && pip3 install --user -U -r /requirements.txt" \
     && apk del .build-deps \
