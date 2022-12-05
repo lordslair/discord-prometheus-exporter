@@ -1,4 +1,4 @@
-FROM alpine:3.16
+FROM alpine:3.17
 
 RUN adduser -h /code -u 1000 -D -H exporter
 
@@ -22,7 +22,7 @@ RUN apk update --no-cache \
     && apk add --no-cache python3=~3.10 \
                           tzdata=~2022 \
     && apk add --no-cache --virtual .build-deps \
-                                    gcc=~11.2 \
+                                    gcc=~12.2 \
                                     libc-dev=~0.7 \
                                     libffi-dev=~3.4 \
                                     python3-dev=~3.10 \
