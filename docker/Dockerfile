@@ -19,13 +19,13 @@ ENV PATH="/code/.local/bin:${PATH}"
 ENV TZ="Europe/Paris"
 
 RUN apk update --no-cache \
-    && apk add --no-cache python3=3.9.13-r1 \
-                          tzdata=2022c-r0 \
+    && apk add --no-cache python3=~3.9 \
+                          tzdata=~2022 \
     && apk add --no-cache --virtual .build-deps \
-                                    gcc=10.3.1_git20211027-r0 \
-                                    libc-dev=0.7.2-r3 \
-                                    libffi-dev=3.4.2-r1 \
-                                    python3-dev=3.9.13-r1 \
+                                    gcc=~10.3 \
+                                    libc-dev=~0.7 \
+                                    libffi-dev=~3.4 \
+                                    python3-dev=~3.9 \
     && su exporter -c "python3 -m ensurepip --upgrade \
                        && pip3 install --user -U -r /requirements.txt" \
     && apk del .build-deps \
