@@ -20,7 +20,7 @@ multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
-prometheus-client==0.15.0
+prometheus-client==0.16.0
     # via -r docker/requirements.in
 py-cord==2.3.2
     # via -r docker/requirements.in
