@@ -28,7 +28,7 @@ multidict==6.0.2
     #   yarl
 prometheus-client==0.17.1
     # via -r requirements.in
-py-cord==2.3.2
+py-cord==2.4.1
     # via -r requirements.in
 yarl==1.8.1
     # via aiohttp
