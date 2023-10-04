@@ -4,14 +4,20 @@
 #
 #    pip-compile docker/requirements.in
 #
-aiohttp==3.7.4.post0
+aiohttp==3.8.5
     # via py-cord
-async-timeout==3.0.1
+aiosignal==1.3.1
+    # via aiohttp
+async-timeout==4.0.3
     # via aiohttp
 attrs==22.1.0
     # via aiohttp
-chardet==4.0.0
+charset-normalizer==3.3.0
     # via aiohttp
+frozenlist==1.4.0
+    # via
+    #   aiohttp
+    #   aiosignal
 idna==3.4
     # via yarl
 loguru==0.7.2
@@ -24,7 +30,5 @@ prometheus-client==0.15.0
     # via -r requirements.in
 py-cord==2.3.2
     # via -r requirements.in
-typing-extensions==4.3.0
-    # via aiohttp
 yarl==1.8.1
     # via aiohttp
