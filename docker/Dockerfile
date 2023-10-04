@@ -8,12 +8,6 @@ COPY --chown=exporter:exporter exporter.py       /code/exporter.py
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-ENV LOGURU_COLORIZE='true'
-ENV LOGURU_DEBUG_COLOR='<cyan><bold>'
-
-ENV PYTHONUNBUFFERED='True'
-ENV PYTHONIOENCODING='UTF-8'
-
 WORKDIR /code
 ENV PATH="/code/.local/bin:${PATH}"
 

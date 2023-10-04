@@ -42,5 +42,15 @@ spec:
         - name: DISCORD_TOKEN
           value: '<YOUR_DISCORD_BOT_TOKEN>'
         # Other env vars
+        - name: LOGURU_COLORIZE
+          value: 'true'
+        - name: LOGURU_DEBUG_COLOR
+          value: '<cyan><bold>'
+        - name: PYTHONUNBUFFERED
+          value: 'True'
+        - name: PYTHONIOENCODING
+          value: 'UTF-8'
+        - name: TZ
+          value: 'Europe/Paris'
         #- name: LOGURU_LEVEL
         #  value: 'DEBUG'
