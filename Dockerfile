@@ -2,8 +2,8 @@ FROM alpine:3.17
 
 RUN adduser -h /code -u 1000 -D -H exporter
 
-COPY                           requirements.txt  /requirements.txt
-COPY --chown=exporter:exporter exporter.py       /code/exporter.py
+COPY --chown=exporter:exporter requirements.txt /code/requirements.txt
+COPY --chown=exporter:exporter /code            /code
 
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
@@ -13,8 +13,8 @@ ENV PATH="/code/.local/bin:${PATH}"
 
 RUN apk update --no-cache \
     && apk add --no-cache \
-        "python3>=3.10" \
-        "tzdata>=2022" \
+        "python3>=3.11" \
+        "tzdata>=2023" \
     && apk add --no-cache --virtual .build-deps \
         "gcc=~12.2" \
         "libc-dev=~0.7" \
