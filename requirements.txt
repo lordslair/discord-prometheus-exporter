@@ -14,16 +14,16 @@ chardet==4.0.0
     # via aiohttp
 idna==3.4
     # via yarl
-loguru==0.6.0
-    # via -r docker/requirements.in
+loguru==0.7.2
+    # via -r requirements.in
 multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
 prometheus-client==0.15.0
-    # via -r docker/requirements.in
+    # via -r requirements.in
 py-cord==2.3.2
-    # via -r docker/requirements.in
+    # via -r requirements.in
 typing-extensions==4.3.0
     # via aiohttp
 yarl==1.8.1
