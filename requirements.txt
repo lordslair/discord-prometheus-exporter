@@ -26,9 +26,11 @@ multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
-prometheus-client==0.17.1
+prometheus-client==0.18.0
     # via -r requirements.in
 py-cord==2.3.2
     # via -r requirements.in
+typing-extensions==4.8.0
+    # via py-cord
 yarl==1.8.1
     # via aiohttp
