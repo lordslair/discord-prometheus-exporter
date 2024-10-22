@@ -4,15 +4,15 @@
 #
 #    pip-compile docker/requirements.in
 #
-aiohttp==3.8.5
+aiohappyeyeballs==2.4.3
+    # via aiohttp
+aiohttp==3.10.2
     # via py-cord
 aiosignal==1.3.1
     # via aiohttp
 async-timeout==4.0.3
     # via aiohttp
 attrs==22.1.0
-    # via aiohttp
-charset-normalizer==3.3.0
     # via aiohttp
 frozenlist==1.4.0
     # via
