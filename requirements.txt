@@ -20,7 +20,7 @@ frozenlist==1.4.0
     #   aiosignal
 idna==3.7
     # via yarl
-loguru==0.7.2
+loguru==0.7.3
     # via -r requirements.in
 multidict==6.0.2
     # via
