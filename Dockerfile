@@ -8,11 +8,7 @@ RUN adduser -h /code -u 1000 -D -H exporter
 COPY --chown=exporter:exporter requirements.txt /code/requirements.txt
 
 # Install dependencies
-RUN apk update --no-cache \
-    && apk add --no-cache --virtual .build-deps \
-        "gcc>=14" \
-        "libc-dev>=0.7" \
-    && su exporter -c "pip3 install --user -U -r /code/requirements.txt"
+RUN su exporter -c "pip3 install --user -U -r /code/requirements.txt"
 
 # Stage 2: Final
 FROM python:3.13-alpine3.22
