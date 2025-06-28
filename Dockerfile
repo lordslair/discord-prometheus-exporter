@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM python:3.11-alpine3.22 as builder
+FROM python:3.13-alpine3.22 as builder
 
 # Create user and group
 RUN adduser -h /code -u 1000 -D -H exporter
@@ -15,7 +15,7 @@ RUN apk update --no-cache \
     && su exporter -c "pip3 install --user -U -r /code/requirements.txt"
 
 # Stage 2: Final
-FROM python:3.11-alpine3.22
+FROM python:3.13-alpine3.22
 
 # Create user and group
 RUN adduser -h /code -u 1000 -D -H exporter
