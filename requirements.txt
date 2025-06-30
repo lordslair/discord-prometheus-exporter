@@ -12,6 +12,8 @@ aiosignal==1.3.2
     # via aiohttp
 attrs==25.3.0
     # via aiohttp
+audioop-lts==0.2.1
+    # via -r requirements.in
 frozenlist==1.7.0
     # via
     #   aiohttp
