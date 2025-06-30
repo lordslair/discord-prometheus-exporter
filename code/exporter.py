@@ -3,25 +3,18 @@
 
 import asyncio
 import discord
-import os
 import time
 
 from prometheus_client  import start_http_server, Gauge, Counter
 from loguru             import logger
 
-# Log System imports
+from variables import env_vars
 logger.info('[Exporter][✓] System imports')
 
 
-# Exporter variables
-DISCORD_TOKEN    = os.getenv('DISCORD_TOKEN', None)
-if DISCORD_TOKEN is None:
+if env_vars['DISCORD_TOKEN'] is None:
     logger.error('[Exporter][✗] ENV var DISCORD_TOKEN not found')
-    exit()
-EXPORTER_PORT    = int(os.getenv('EXPORTER_PORT', '8080'))
-POLLING_INTERVAL = int(os.getenv('POLLING_INTERVAL', 10))
-logger.info(f'[Exporter][✓] Listening on :{EXPORTER_PORT}')
-logger.info(f'[Exporter][✓] Polling interval {POLLING_INTERVAL}s')
+
 
 # Metrics definition
 # Gauges
@@ -169,12 +162,12 @@ async def request_boost(timer):
         await asyncio.sleep(timer)
 
 # Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
-client.loop.create_task(request_ping(POLLING_INTERVAL))
-client.loop.create_task(request_registered(POLLING_INTERVAL))
-client.loop.create_task(request_online(POLLING_INTERVAL))
-client.loop.create_task(request_boost(POLLING_INTERVAL))
+client.loop.create_task(request_ping(env_vars['POLLING_INTERVAL']))
+client.loop.create_task(request_registered(env_vars['POLLING_INTERVAL']))
+client.loop.create_task(request_online(env_vars['POLLING_INTERVAL']))
+client.loop.create_task(request_boost(env_vars['POLLING_INTERVAL']))
 
-start_http_server(EXPORTER_PORT)
+start_http_server(env_vars['EXPORTER_PORT'])
 
 
 @client.event
@@ -198,7 +191,7 @@ async def on_reaction_add(reaction, member):
 iter = 0
 while iter < 5:
     try:
-        client.run(DISCORD_TOKEN)
+        client.run(env_vars['DISCORD_TOKEN'])
         break
     except Exception as e:
         logger.error(
