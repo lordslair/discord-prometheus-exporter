@@ -26,6 +26,10 @@ Exporter variables :
 ENV global variables :
 - `LOGURU_LEVEL`: Minimal level for log output (Default: `DEBUG`)
 
+If you want to enable persistence, for Messages and Reactions Counters:
+- `PERSIST_FILE`: Complete path to the file to use for persistence (Default: `None`)
+- `PERSIST_TIMER`: Interval in seconds between filesaves (Default: `60`)
+
 ### Output on container start
 
 ```
@@ -88,6 +92,15 @@ $ cd discord-prometheus-exporter/k8s
 $ kubectl apply -f deployment.yaml
 ```
 
+#### Persistence
+
+I added functionality to save on file the metrics for persistence between container restarts.
+Enable it by filling the ENV VAR `PERSIST_FILE`, and it should work.
+
+Of course, this file needs to be mounted from the host to be useful
+
+NB: The persistence is not enabled by default, to be as light as possible.
+
 #### Grafana
 
 You can import directly in Grafana the related Dashboard [here][dashboard].  
@@ -115,7 +128,7 @@ The container is quite light, as [Alpine][alpine] is used as base.
 ```
 $ docker images
 REPOSITORY                              TAG       SIZE
-lordslair/discord-prometheus-exporter   latest    86.2MB
+lordslair/discord-prometheus-exporter   latest    69.5MB
 ```
 
 On the performance topic, the container consumes about :
@@ -125,7 +138,6 @@ On the performance topic, the container consumes about :
 ### Todos
 
  - Write a Docker (Compose) file for easy startup
- - Find a way to resume discord_messages_total without a DB
 
 Nothing else, but I'm open to requests and PR.  
 
