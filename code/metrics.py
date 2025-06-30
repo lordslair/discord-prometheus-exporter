@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 
-from prometheus_client import Gauge, Counter
+from prometheus_client import Gauge
 from loguru import logger
+
+from models.persistent_counter import PersistentCounter
 
 METRICS = {}
 
@@ -38,12 +40,12 @@ METRICS['BOOSTS'] = Gauge(
     )
 
 # Counters
-METRICS['MESSAGES'] = Counter(
+METRICS['MESSAGES'] = PersistentCounter(
     'discord_messages',
     'The number of messages sent on a Guild by a Member.',
     ['guild', 'member'],
     )
-METRICS['REACTIONS'] = Counter(
+METRICS['REACTIONS'] = PersistentCounter(
     'discord_reactions',
     'The number of messages sent on a Guild by a Member.',
     ['guild', 'member'],
