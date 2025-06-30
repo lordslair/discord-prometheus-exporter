@@ -16,8 +16,8 @@ if env_vars['DISCORD_TOKEN'] is None:
     logger.error('[Exporter][✗] ENV var DISCORD_TOKEN not found')
 
 try:
-    # Intents are needed since 2020 for Mamber and Messages infos
-    # Needs to be activates in bots preferences in discord portal
+    # Intents are needed since 2020 for Member and Messages infos
+    # Needs to be activated in bots preferences in discord portal
     intents = discord.Intents.default()
     intents.members = True
     intents.presences = True
@@ -27,14 +27,14 @@ except Exception as e:
 else:
     logger.info('[Exporter][✓] Connection OK')
 
+
 #
 # Tasks definition
 #
 
-
 async def request_ping(timer):
     while client.is_ready:
-        logger.trace('[Exporter][✓] Enterng loop')
+        logger.trace('[Exporter][✓] Entering loop')
         try:
             latency = client.latency
         except Exception as e:
@@ -50,7 +50,7 @@ async def request_ping(timer):
 
 async def request_registered(timer):
     while client.is_ready:
-        logger.trace('[Exporter][✓] Enterng loop')
+        logger.trace('[Exporter][✓] Entering loop')
         try:
             if client.guilds:
                 members_registered = 0
@@ -75,7 +75,7 @@ async def request_registered(timer):
 
 async def request_online(timer):
     while client.is_ready:
-        logger.trace('[Exporter][✓] Enterng loop')
+        logger.trace('[Exporter][✓] Entering loop')
         try:
             if client.guilds:
                 members_online = 0
@@ -102,7 +102,7 @@ async def request_online(timer):
 
 async def request_boost(timer):
     while client.is_ready:
-        logger.trace('[Exporter][✓] Enterng loop')
+        logger.trace('[Exporter][✓] Entering loop')
         try:
             if client.guilds:
                 for guild in client.guilds:
@@ -152,5 +152,5 @@ while iter < 5:
             f'Discord client.run failed (Attempt: {iter+1}/5 [{e}])'
             )
         iter += 1
-        time.sleep(5000000)
+        time.sleep(5)
         continue
