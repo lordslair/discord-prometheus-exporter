@@ -8,6 +8,7 @@ from loguru import logger
 env_vars = {
     "DISCORD_TOKEN": os.environ.get("DISCORD_TOKEN"),
     "EXPORTER_PORT": int(os.getenv('EXPORTER_PORT', '8080')),
+    "HEALTH_PORT": int(os.getenv('EXPORTER_PORT', '8081')),
     "PERSIST_FILE": os.environ.get("PERSIST_FILE", None),
     "PERSIST_TIMER": int(os.environ.get("PERSIST_TIMER", 60)),
     "POLLING_INTERVAL": int(os.getenv('POLLING_INTERVAL', 10)),

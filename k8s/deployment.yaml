@@ -33,10 +33,15 @@ spec:
           requests:
             memory: 32Mi
             cpu: 10m
+        ports:
+        - containerPort: 8080  # Prometheus metrics port
+        - containerPort: 8081  # Health check port
         env:
         # Discord env vars
         #- name: EXPORTER_PORT
         #  value: '8080'
+        #- name: HEALTH_PORT
+        #  value: '8081'
         #- name: POLLING_INTERVAL
         #  value: '10'
         - name: DISCORD_TOKEN
@@ -54,3 +59,18 @@ spec:
           value: 'Europe/Paris'
         #- name: LOGURU_LEVEL
         #  value: 'DEBUG'
+        # Healthcheck
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15  # Allow time for Discord connection
+          periodSeconds: 10
+          failureThreshold: 3       # Restart after 3 consecutive failures
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 1       # Mark unready after 1 failure

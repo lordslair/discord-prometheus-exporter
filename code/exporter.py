@@ -4,12 +4,40 @@
 import asyncio
 import discord
 import time
+import threading
 
+from flask import Flask, Response
 from prometheus_client import start_http_server
 from loguru import logger
 
 from variables import env_vars
 from metrics import METRICS
+
+# ========== Health Check Setup ==========
+app = Flask(__name__)
+
+
+# We'll use the 'client' variable defined below in the health endpoint
+@app.route('/healthz')
+def health():
+    if client.is_closed():
+        return Response("DISCONNECTED", status=503)
+    elif not client.is_ready():
+        return Response("NOT_READY", status=503)
+    else:
+        return Response("OK", status=200)
+
+
+def run_flask():
+    # Use a port different from the Prometheus exporter (default 8001 here)
+    app.run(
+        debug=False,
+        host='0.0.0.0',
+        port=env_vars.get('HEALTH_PORT'),
+        threaded=True,
+        use_reloader=False,
+        )
+# ========================================
 
 
 if env_vars['DISCORD_TOKEN'] is None:
@@ -139,6 +167,11 @@ async def on_reaction_add(reaction, member):
             METRICS['REACTIONS'].labels(guild=member.guild, member=member).inc()
     except Exception as e:
         logger.error(f'[Exporter] Unable to retrieve data [{e}]')
+
+# ========== Start Flask Health Server in Thread ==========
+flask_thread = threading.Thread(target=run_flask, daemon=True)
+flask_thread.start()
+# ========================================================
 
 # Run Discord client
 iter = 0

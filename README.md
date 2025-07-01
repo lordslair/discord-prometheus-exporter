@@ -30,6 +30,9 @@ If you want to enable persistence, for Messages and Reactions Counters:
 - `PERSIST_FILE`: Complete path to the file to use for persistence (Default: `None`)
 - `PERSIST_TIMER`: Interval in seconds between filesaves (Default: `60`)
 
+If you want to use a probe to check the exporter status (on /healthz):
+- `HEALTH_PORT`: Healthcheck listening port (Default: `8081`)
+
 ### Output on container start
 
 ```
@@ -128,7 +131,7 @@ The container is quite light, as [Alpine][alpine] is used as base.
 ```
 $ docker images
 REPOSITORY                              TAG       SIZE
-lordslair/discord-prometheus-exporter   latest    69.5MB
+lordslair/discord-prometheus-exporter   latest    78.5MB
 ```
 
 On the performance topic, the container consumes about :
