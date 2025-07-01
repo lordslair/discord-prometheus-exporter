@@ -28,11 +28,11 @@ spec:
         imagePullPolicy: Always
         resources:
           limits:
-            memory: 32Mi
-            cpu: 50m
+            memory: 64Mi
+            cpu: 100m
           requests:
             memory: 32Mi
-            cpu: 10m
+            cpu: 50m
         ports:
         - containerPort: 8080  # Prometheus metrics port
         - containerPort: 8081  # Health check port
@@ -64,13 +64,13 @@ spec:
           httpGet:
             path: /healthz
             port: 8081
-          initialDelaySeconds: 15  # Allow time for Discord connection
+          initialDelaySeconds: 60   # Allow time for Discord connection
           periodSeconds: 10
           failureThreshold: 3       # Restart after 3 consecutive failures
         readinessProbe:
           httpGet:
             path: /healthz
             port: 8081
-          initialDelaySeconds: 5
+          initialDelaySeconds: 60
           periodSeconds: 5
           failureThreshold: 1       # Mark unready after 1 failure
