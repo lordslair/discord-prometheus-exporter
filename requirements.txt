@@ -6,9 +6,9 @@
 #
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.12.13
+aiohttp==3.12.14
     # via py-cord
-aiosignal==1.3.2
+aiosignal==1.4.0
     # via aiohttp
 attrs==25.3.0
     # via aiohttp
