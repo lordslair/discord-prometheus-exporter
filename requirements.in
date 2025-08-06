@@ -1,4 +1,4 @@
-audioop-lts==0.2.1  # Temporary: github.com/Rapptz/discord.py/issues/9742
+audioop-lts==0.2.2  # Temporary: github.com/Rapptz/discord.py/issues/9742
 Flask==3.1.1
 loguru==0.7.3
 prometheus_client==0.22.1
