@@ -28,7 +28,7 @@ jobs:
 
     - name: Extracting Metadata 🔧
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         images: ${{ vars.DOCKER_USERNAME }}/discord-prometheus-exporter
         tags: |
