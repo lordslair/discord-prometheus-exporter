@@ -12,9 +12,17 @@ on:
 permissions:
   contents: read
 
+# One run at a time per PR / branch: a new push cancels the running PR run,
+# while main runs are queued instead of cancelled, so an older run can never
+# push its edge image after a newer one
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout 🛎️

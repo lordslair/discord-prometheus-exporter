@@ -11,9 +11,16 @@ on:
 permissions:
   contents: read
 
+# One release at a time, queued and never cancelled, so an older tag can never
+# push its latest image after a newer one
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout 🛎️
