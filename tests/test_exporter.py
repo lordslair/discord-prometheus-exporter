@@ -10,6 +10,7 @@ from loguru import logger
 import exporter
 from conftest import FakeGuild, FakeMember, sample
 from models.persistent_counter import PersistentCounter
+from variables import env_vars
 
 
 #
@@ -224,6 +225,7 @@ def test_healthz(fake_client, closed, ready, status, body):
 @pytest.fixture
 def no_servers(monkeypatch):
     """Keep main() from starting the save timer and the HTTP servers."""
+    monkeypatch.setitem(env_vars, 'DISCORD_TOKEN', 'test-token')
     monkeypatch.setattr(exporter, 'periodic_save', lambda: None)
     monkeypatch.setattr(exporter, 'start_http_server', lambda port: None)
     monkeypatch.setattr(exporter, 'run_flask', lambda: None)
@@ -268,3 +270,17 @@ def test_main_saves_counters_when_client_fails(fake_client, no_servers, saves):
         exporter.main()
 
     assert len(saves) == 1
+
+
+def test_main_exits_without_token(monkeypatch, fake_client, no_servers):
+    monkeypatch.setitem(env_vars, 'DISCORD_TOKEN', None)
+    started = []
+    monkeypatch.setattr(exporter, 'periodic_save', lambda: started.append(1))
+    fake_client.run = lambda token: started.append(1)
+
+    with pytest.raises(SystemExit) as exc:
+        exporter.main()
+
+    assert exc.value.code == 1
+    # Fails before starting anything
+    assert started == []

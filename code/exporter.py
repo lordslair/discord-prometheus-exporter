@@ -30,7 +30,7 @@ def health():
 
 
 def run_flask():
-    # Use a port different from the Prometheus exporter (default 8001 here)
+    # Use a port different from the Prometheus exporter (default 8081 here)
     app.run(
         debug=False,
         host='0.0.0.0',
@@ -41,17 +41,13 @@ def run_flask():
 # ========================================
 
 
-try:
-    # Intents are needed since 2020 for Member and Messages infos
-    # Needs to be activated in bots preferences in discord portal
-    intents = discord.Intents.default()
-    intents.members = True
-    intents.presences = True
-    client = discord.Client(intents=intents)
-except Exception as e:
-    logger.error(f'[Exporter][✗] Connection KO [{e}]')
-else:
-    logger.info('[Exporter][✓] Connection OK')
+# Intents are needed since 2020 for Member and Messages infos
+# Needs to be activated in bots preferences in discord portal
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
+# Only creates the client: it connects in main(), with client.run()
+client = discord.Client(intents=intents)
 
 
 #
@@ -109,6 +105,15 @@ async def poll(update, timer):
 
 
 @client.event
+async def on_ready():
+    # Fired again after a reconnection, once the guilds are loaded
+    logger.info(
+        f'[Exporter][✓] Connected as {client.user} '
+        f'({len(client.guilds)} guilds)'
+        )
+
+
+@client.event
 async def on_message(ctx):
     try:
         # Direct messages to the bot belong to no guild: not counted
@@ -136,8 +141,10 @@ async def on_raw_reaction_add(payload):
 
 
 def main():
+    # Nothing works without it: fail now, not once everything is started
     if env_vars['DISCORD_TOKEN'] is None:
         logger.error('[Exporter][✗] ENV var DISCORD_TOKEN not found')
+        sys.exit(1)
 
     # Persist Counters every PERSIST_TIMER seconds
     periodic_save()
