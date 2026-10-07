@@ -21,12 +21,16 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
 
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   build-push:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     needs:
     - lint
+    - tests
 
     steps:
     - name: Checkout 🛎️

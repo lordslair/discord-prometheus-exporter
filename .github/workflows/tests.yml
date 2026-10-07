@@ -1,0 +1,40 @@
+# Reusable pytest job, called by the Pipeline Tests and Pipeline Release workflows
+
+name: Tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout 🛎️
+      uses: actions/checkout@v7
+
+    # Tests must run on the same Python as the image's
+    - name: Read Python version from Dockerfile 🔎
+      id: pyver
+      run: |
+        echo "version=$(sed -nE 's/^FROM python:([0-9.]+)-.*/\1/p' Dockerfile | head -1)" >> "$GITHUB_OUTPUT"
+
+    - name: Set up Python ${{ steps.pyver.outputs.version }} 🐍
+      uses: actions/setup-python@v7
+      with:
+        python-version: ${{ steps.pyver.outputs.version }}
+        cache: pip
+        cache-dependency-path: |
+          requirements.txt
+          requirements-tests.txt
+
+    - name: Install requirements ⏬
+      run: pip install -r requirements.txt -r requirements-tests.txt
+
+    # Discord is faked: no token, network or secrets needed
+    - name: Test with PyTest ⚙️
+      run: pytest

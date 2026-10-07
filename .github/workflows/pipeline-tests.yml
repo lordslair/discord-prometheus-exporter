@@ -1,6 +1,6 @@
-# Lints and builds the Docker image on every push and pull request to main,
+# Lints, tests and builds the Docker image on every push and pull request to main,
 # and pushes the edge image (main pushes only). Run it manually on any branch
-# for a dry run: lint + build, nothing is pushed
+# for a dry run: lint + tests + build, nothing is pushed
 
 name: Pipeline Tests
 
@@ -26,12 +26,16 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
 
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   build-push:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     needs:
     - lint
+    - tests
 
     steps:
     - name: Checkout 🛎️
