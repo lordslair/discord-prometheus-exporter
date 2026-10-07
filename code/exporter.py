@@ -6,7 +6,7 @@ import discord
 import sys
 import threading
 
-from flask import Flask, Response
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from prometheus_client import start_http_server
 from loguru import logger
 
@@ -15,29 +15,44 @@ from metrics import METRICS
 from models.persistent_counter import PersistentCounter, periodic_save
 
 # ========== Health Check Setup ==========
-app = Flask(__name__)
 
 
 # We'll use the 'client' variable defined below in the health endpoint
-@app.route('/healthz')
-def health():
+def health_status():
+    """HTTP status and body for /healthz, from the Discord client's state."""
     if client.is_closed():
-        return Response("DISCONNECTED", status=503)
+        return 503, 'DISCONNECTED'
     elif not client.is_ready():
-        return Response("NOT_READY", status=503)
+        return 503, 'NOT_READY'
     else:
-        return Response("OK", status=200)
+        return 200, 'OK'
 
 
-def run_flask():
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.split('?')[0] == '/healthz':
+            status, body = health_status()
+        else:
+            status, body = 404, 'NOT_FOUND'
+
+        payload = body.encode('utf-8')
+        self.send_response(status)
+        self.send_header('Content-Type', 'text/plain; charset=utf-8')
+        self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def log_message(self, format, *args):
+        # Probes call it every few seconds: trace only, not every request
+        logger.trace(f'[Exporter] Health check: {format % args}')
+
+
+def start_health_server(port):
+    """Serve /healthz in a background thread, returns the server."""
     # Use a port different from the Prometheus exporter (default 8081 here)
-    app.run(
-        debug=False,
-        host='0.0.0.0',
-        port=env_vars.get('HEALTH_PORT'),
-        threaded=True,
-        use_reloader=False,
-        )
+    server = ThreadingHTTPServer(('0.0.0.0', port), HealthHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
 # ========================================
 
 
@@ -155,10 +170,7 @@ def main():
 
     start_http_server(env_vars['EXPORTER_PORT'])
 
-    # ========== Start Flask Health Server in Thread ==========
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    # ========================================================
+    start_health_server(env_vars['HEALTH_PORT'])
 
     # Run Discord client
     # No retry here: client.run() closes its event loop when it fails, so the

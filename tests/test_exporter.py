@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 
 import asyncio
+import urllib.error
+import urllib.request
 
 import discord
 import pytest
@@ -203,19 +205,55 @@ def test_old_reaction_event_is_gone():
 # Health check
 #
 
-@pytest.mark.parametrize('closed, ready, status, body', [
-    (True, False, 503, b'DISCONNECTED'),
-    (False, False, 503, b'NOT_READY'),
-    (False, True, 200, b'OK'),
-])
-def test_healthz(fake_client, closed, ready, status, body):
+HEALTH_STATES = [
+    # closed, ready, status, body
+    (True, False, 503, 'DISCONNECTED'),
+    (False, False, 503, 'NOT_READY'),
+    (False, True, 200, 'OK'),
+]
+
+
+@pytest.mark.parametrize('closed, ready, status, body', HEALTH_STATES)
+def test_health_status(fake_client, closed, ready, status, body):
     fake_client.closed = closed
     fake_client.ready = ready
 
-    response = exporter.app.test_client().get('/healthz')
+    assert exporter.health_status() == (status, body)
 
-    assert response.status_code == status
-    assert response.data == body
+
+@pytest.fixture
+def health_url():
+    """Start the real health server on a free port."""
+    server = exporter.start_health_server(0)
+    yield f'http://127.0.0.1:{server.server_address[1]}'
+    server.shutdown()
+    server.server_close()
+
+
+def get(url):
+    """Status and body of a GET, errors included."""
+    try:
+        with urllib.request.urlopen(url, timeout=5) as response:
+            return response.status, response.read().decode()
+    except urllib.error.HTTPError as error:
+        return error.code, error.read().decode()
+
+
+@pytest.mark.parametrize('closed, ready, status, body', HEALTH_STATES)
+def test_healthz_over_http(fake_client, health_url, closed, ready, status, body):
+    fake_client.closed = closed
+    fake_client.ready = ready
+
+    assert get(f'{health_url}/healthz') == (status, body)
+
+
+def test_healthz_ignores_query_string(fake_client, health_url):
+    assert get(f'{health_url}/healthz?probe=liveness') == (200, 'OK')
+
+
+def test_other_paths_are_not_found(fake_client, health_url):
+    assert get(f'{health_url}/') == (404, 'NOT_FOUND')
+    assert get(f'{health_url}/metrics') == (404, 'NOT_FOUND')
 
 
 #
@@ -228,7 +266,7 @@ def no_servers(monkeypatch):
     monkeypatch.setitem(env_vars, 'DISCORD_TOKEN', 'test-token')
     monkeypatch.setattr(exporter, 'periodic_save', lambda: None)
     monkeypatch.setattr(exporter, 'start_http_server', lambda port: None)
-    monkeypatch.setattr(exporter, 'run_flask', lambda: None)
+    monkeypatch.setattr(exporter, 'start_health_server', lambda port: None)
 
 
 @pytest.fixture
