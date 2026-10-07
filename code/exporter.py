@@ -3,7 +3,7 @@
 
 import asyncio
 import discord
-import time
+import sys
 import threading
 
 from flask import Flask, Response
@@ -180,19 +180,13 @@ def main():
     # ========================================================
 
     # Run Discord client
-    iter = 0
-    while iter < 5:
-        try:
-            client.run(env_vars['DISCORD_TOKEN'])
-            break
-        except Exception as e:
-            logger.error(
-                f'[Exporter][✗] '
-                f'Discord client.run failed (Attempt: {iter+1}/5 [{e}])'
-                )
-            iter += 1
-            time.sleep(5)
-            continue
+    # No retry here: client.run() closes its event loop when it fails, so the
+    # client can't be run again. Exit instead, and let the container restart
+    try:
+        client.run(env_vars['DISCORD_TOKEN'])
+    except Exception as e:
+        logger.error(f'[Exporter][✗] Discord client.run failed [{e}]')
+        sys.exit(1)
 
 
 if __name__ == '__main__':

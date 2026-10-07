@@ -94,4 +94,7 @@ class PersistentCounter:
 
 def periodic_save():
     PersistentCounter.save_all()
-    threading.Timer(env_vars['PERSIST_TIMER'], periodic_save).start()
+    # Daemon, so it never keeps the process alive once the exporter exits
+    timer = threading.Timer(env_vars['PERSIST_TIMER'], periodic_save)
+    timer.daemon = True
+    timer.start()
