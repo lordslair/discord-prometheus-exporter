@@ -1,5 +1,6 @@
-# Builds the Docker image on every push and pull request to main,
-# and pushes the edge image (main pushes only)
+# Lints and builds the Docker image on every push and pull request to main,
+# and pushes the edge image (main pushes only). Run it manually on any branch
+# for a dry run: lint + build, nothing is pushed
 
 name: Pipeline Tests
 
@@ -8,16 +9,18 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# One run at a time per PR / branch: a new push cancels the running PR run,
-# while main runs are queued instead of cancelled, so an older run can never
-# push its edge image after a newer one
+# One run at a time per PR / branch: a new run cancels the running PR or
+# dry run, while main pushes are queued instead of cancelled, so an older run
+# can never push its edge image after a newer one. Dry runs get their own
+# group, so they can never take a queued main push's place
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
   lint:
@@ -34,7 +37,7 @@ jobs:
     - name: Checkout 🛎️
       uses: actions/checkout@v6
 
-    # Pull requests only build the image, never push it
+    # Pull requests and dry runs only build the image, never push it
     - name: Log in to Docker Hub 🔐
       if: github.event_name == 'push'
       uses: docker/login-action@v3
