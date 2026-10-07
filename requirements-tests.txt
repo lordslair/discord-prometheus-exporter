@@ -1,0 +1,3 @@
+# Test-only dependencies, not required by the exporter.
+# Installed in CI by the tests job, on top of requirements.txt.
+pytest==9.1.1

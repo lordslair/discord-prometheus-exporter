@@ -58,83 +58,50 @@ else:
 # Tasks definition
 #
 
-async def request_ping(timer):
-    while client.is_ready:
-        logger.trace('[Exporter][✓] Entering loop')
+def update_ping():
+    METRICS['PING'].set(client.latency)
+
+
+def update_registered():
+    for guild in client.guilds:
+        members_registered = 0
+        bots_registered = 0
+        for member in guild.members:
+            if member.bot is False:
+                members_registered += 1
+            else:
+                bots_registered += 1
+        METRICS['BOTS_REGISTERED'].labels(guild=guild).set(bots_registered)
+        METRICS['MEMBERS_REGISTERED'].labels(guild=guild).set(members_registered)
+
+
+def update_online():
+    for guild in client.guilds:
+        members_online = 0
+        bots_online = 0
+        for member in guild.members:
+            if member.status is discord.Status.offline:
+                continue
+            if member.bot is False:
+                members_online += 1
+            else:
+                bots_online += 1
+        METRICS['BOTS_ONLINE'].labels(guild=guild).set(bots_online)
+        METRICS['MEMBERS_ONLINE'].labels(guild=guild).set(members_online)
+
+
+def update_boost():
+    for guild in client.guilds:
+        METRICS['BOOSTS'].labels(guild=guild).set(guild.premium_subscription_count)
+
+
+async def poll(update, timer):
+    # Tasks start before the client connects: until it's ready, there are
+    # no guilds yet, so each update is a no-op
+    while not client.is_closed():
+        logger.trace(f'[Exporter][✓] Entering loop ({update.__name__})')
         try:
-            latency = client.latency
-        except Exception as e:
-            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
-        else:
-            try:
-                METRICS['PING'].set(latency)
-            except Exception as e:
-                logger.error(f'[Exporter] Unable to set DISCORD_PING [{e}]')
-
-        await asyncio.sleep(timer)
-
-
-async def request_registered(timer):
-    while client.is_ready:
-        logger.trace('[Exporter][✓] Entering loop')
-        try:
-            if client.guilds:
-                members_registered = 0
-                bots_registered = 0
-                for guild in client.guilds:
-                    for member in guild.members:
-                        if member.bot is False:
-                            members_registered += 1
-                        else:
-                            bots_registered += 1
-                    METRICS['BOTS_REGISTERED'].labels(
-                        guild=guild
-                        ).set(bots_registered)
-                    METRICS['MEMBERS_REGISTERED'].labels(
-                        guild=guild
-                        ).set(members_registered)
-        except Exception as e:
-            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
-
-        await asyncio.sleep(timer)
-
-
-async def request_online(timer):
-    while client.is_ready:
-        logger.trace('[Exporter][✓] Entering loop')
-        try:
-            if client.guilds:
-                members_online = 0
-                bots_online = 0
-                for guild in client.guilds:
-                    for member in guild.members:
-                        if member.bot is False:
-                            if member.status is not discord.Status.offline:
-                                members_online += 1
-                        else:
-                            if member.status is not discord.Status.offline:
-                                bots_online += 1
-                    METRICS['BOTS_ONLINE'].labels(
-                        guild=guild
-                        ).set(bots_online)
-                    METRICS['MEMBERS_ONLINE'].labels(
-                        guild=guild
-                        ).set(members_online)
-        except Exception as e:
-            logger.error(f'[Exporter] Unable to retrieve data [{e}]')
-
-        await asyncio.sleep(timer)
-
-
-async def request_boost(timer):
-    while client.is_ready:
-        logger.trace('[Exporter][✓] Entering loop')
-        try:
-            if client.guilds:
-                for guild in client.guilds:
-                    METRICS['BOOSTS'].labels(
-                        guild=guild
-                        ).set(guild.premium_subscription_count)
+            update()
         except Exception as e:
             logger.error(f'[Exporter] Unable to retrieve data [{e}]')
 
@@ -167,10 +134,8 @@ def main():
     periodic_save()
 
     # Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
-    client.loop.create_task(request_ping(env_vars['POLLING_INTERVAL']))
-    client.loop.create_task(request_registered(env_vars['POLLING_INTERVAL']))
-    client.loop.create_task(request_online(env_vars['POLLING_INTERVAL']))
-    client.loop.create_task(request_boost(env_vars['POLLING_INTERVAL']))
+    for update in (update_ping, update_registered, update_online, update_boost):
+        client.loop.create_task(poll(update, env_vars['POLLING_INTERVAL']))
 
     start_http_server(env_vars['EXPORTER_PORT'])
 

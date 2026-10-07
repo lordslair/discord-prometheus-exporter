@@ -47,7 +47,7 @@ METRICS['MESSAGES'] = PersistentCounter(
     )
 METRICS['REACTIONS'] = PersistentCounter(
     'discord_reactions',
-    'The number of messages sent on a Guild by a Member.',
+    'The number of reactions added on a Guild by a Member.',
     ['guild', 'member'],
     )
 
