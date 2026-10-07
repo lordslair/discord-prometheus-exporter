@@ -233,4 +233,6 @@ Nothing else, but I'm open to requests and PR.
    [piptools]: <https://github.com/jazzband/pip-tools>
    [devportal]: <https://discord.com/developers/applications>
    [python]: <https://www.python.org>
-   [dashboard]: <grafana/dashboard-DPE.json>
+   [dashboard]: <dashboards/grafana.json>
+   [perses]: <https://perses.dev>
+   [perses-dashboard]: <dashboards/perses.json>
