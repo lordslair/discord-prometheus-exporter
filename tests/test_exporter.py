@@ -5,8 +5,11 @@ import asyncio
 import discord
 import pytest
 
+from loguru import logger
+
 import exporter
 from conftest import FakeGuild, FakeMember, sample
+from models.persistent_counter import PersistentCounter
 
 
 #
@@ -145,22 +148,54 @@ def test_on_message_ignores_bots():
     assert sample('discord_messages_total', guild=guild.name, member=author.name) == 0
 
 
-def test_on_reaction_add_counts_members():
+def test_on_message_ignores_direct_messages():
+    author = FakeMember()
+    message = type('Message', (), {'author': author, 'guild': None})
+
+    asyncio.run(exporter.on_message(message))
+
+    assert sample('discord_messages_total', guild='None', member=author.name) == 0
+
+
+def reaction(member):
+    return type('RawReactionActionEvent', (), {'member': member})
+
+
+def test_on_raw_reaction_add_counts_members():
     guild = FakeGuild()
     member = FakeMember(guild=guild)
 
-    asyncio.run(exporter.on_reaction_add(None, member))
+    asyncio.run(exporter.on_raw_reaction_add(reaction(member)))
+    asyncio.run(exporter.on_raw_reaction_add(reaction(member)))
 
-    assert sample('discord_reactions_total', guild=guild.name, member=member.name) == 1
+    assert sample('discord_reactions_total', guild=guild.name, member=member.name) == 2
 
 
-def test_on_reaction_add_ignores_bots():
+def test_on_raw_reaction_add_ignores_bots():
     guild = FakeGuild()
     member = FakeMember(bot=True, guild=guild)
 
-    asyncio.run(exporter.on_reaction_add(None, member))
+    asyncio.run(exporter.on_raw_reaction_add(reaction(member)))
 
     assert sample('discord_reactions_total', guild=guild.name, member=member.name) == 0
+
+
+def test_on_raw_reaction_add_ignores_direct_messages():
+    errors = []
+    handler = logger.add(errors.append, level='ERROR')
+    try:
+        # In direct messages, Discord sends no member
+        asyncio.run(exporter.on_raw_reaction_add(reaction(None)))
+    finally:
+        logger.remove(handler)
+
+    # Skipped, not failing (and logged) on the missing member
+    assert errors == []
+
+
+def test_old_reaction_event_is_gone():
+    # Counting both would count every cached reaction twice
+    assert not hasattr(exporter, 'on_reaction_add')
 
 
 #
@@ -194,6 +229,14 @@ def no_servers(monkeypatch):
     monkeypatch.setattr(exporter, 'run_flask', lambda: None)
 
 
+@pytest.fixture
+def saves(monkeypatch):
+    """Count the Counter persistence saves."""
+    calls = []
+    monkeypatch.setattr(PersistentCounter, 'save_all', lambda: calls.append(1))
+    return calls
+
+
 def test_main_exits_when_client_fails(fake_client, no_servers):
     def run(token):
         raise RuntimeError('Improper token has been passed.')
@@ -208,3 +251,20 @@ def test_main_exits_when_client_fails(fake_client, no_servers):
 def test_main_returns_when_client_stops(fake_client, no_servers):
     # client.run() returns on a clean shutdown (SIGTERM): no error then
     assert exporter.main() is None
+
+
+def test_main_saves_counters_on_shutdown(fake_client, no_servers, saves):
+    exporter.main()
+
+    assert len(saves) == 1
+
+
+def test_main_saves_counters_when_client_fails(fake_client, no_servers, saves):
+    def run(token):
+        raise RuntimeError('Connection reset')
+    fake_client.run = run
+
+    with pytest.raises(SystemExit):
+        exporter.main()
+
+    assert len(saves) == 1

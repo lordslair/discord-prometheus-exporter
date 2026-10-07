@@ -12,7 +12,7 @@ from loguru import logger
 
 from variables import env_vars
 from metrics import METRICS
-from models.persistent_counter import periodic_save
+from models.persistent_counter import PersistentCounter, periodic_save
 
 # ========== Health Check Setup ==========
 app = Flask(__name__)
@@ -111,15 +111,24 @@ async def poll(update, timer):
 @client.event
 async def on_message(ctx):
     try:
+        # Direct messages to the bot belong to no guild: not counted
+        if ctx.guild is None:
+            return
         if ctx.author.bot is False:
             METRICS['MESSAGES'].labels(guild=ctx.guild, member=ctx.author).inc()
     except Exception as e:
         logger.error(f'[Exporter] Unable to retrieve data [{e}]')
 
 
+# Raw event: on_reaction_add only fires for messages still in the client's
+# message cache (the last 1000 seen since startup), this one for every message
 @client.event
-async def on_reaction_add(reaction, member):
+async def on_raw_reaction_add(payload):
     try:
+        # Only set for reactions within a guild, None in direct messages
+        member = payload.member
+        if member is None:
+            return
         if member.bot is False:
             METRICS['REACTIONS'].labels(guild=member.guild, member=member).inc()
     except Exception as e:
@@ -152,6 +161,9 @@ def main():
     except Exception as e:
         logger.error(f'[Exporter][✗] Discord client.run failed [{e}]')
         sys.exit(1)
+    finally:
+        # Last save on the way out, so counts since the previous one are kept
+        PersistentCounter.save_all()
 
 
 if __name__ == '__main__':

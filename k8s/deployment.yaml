@@ -44,6 +44,9 @@ spec:
         #  value: '8081'
         #- name: POLLING_INTERVAL
         #  value: '10'
+        # Keeps message and reaction counters across container restarts
+        - name: PERSIST_FILE
+          value: '/data/counters.json'
         - name: DISCORD_TOKEN
           value: '<YOUR_DISCORD_BOT_TOKEN>'
         # Other env vars
@@ -59,6 +62,9 @@ spec:
           value: 'Europe/Paris'
         #- name: LOGURU_LEVEL
         #  value: 'DEBUG'
+        volumeMounts:
+        - name: persist
+          mountPath: /data
         # Healthcheck
         livenessProbe:
           httpGet:
@@ -74,3 +80,9 @@ spec:
           initialDelaySeconds: 60
           periodSeconds: 5
           failureThreshold: 1       # Mark unready after 1 failure
+
+      volumes:
+      # Survives container restarts, not the pod's deletion (rollout, eviction,
+      # node change): use a PersistentVolumeClaim to keep counters across those
+      - name: persist
+        emptyDir: {}

@@ -2,6 +2,7 @@
 
 import json
 import os
+import tempfile
 import threading
 
 from loguru import logger
@@ -87,13 +88,39 @@ class PersistentCounter:
                             key = f"{sample.name}:{json.dumps(sample.labels)}"
                             state[key] = sample.value
             if state:  # Only write if state is not empty
-                with open(persist_file, 'w', encoding='utf-8') as f:
-                    json.dump(state, f)
+                cls._write_atomic(persist_file, state)
                 logger.trace(f"Saved Counter persistence [{persist_file}]")
+
+    @staticmethod
+    def _write_atomic(persist_file, state):
+        """
+        Write the state to a temporary file, then rename it over the persistence file.
+
+        A crash mid-write leaves the previous file intact instead of a truncated
+        one, which would reset every counter on the next start.
+        """
+        # Same directory, so the rename never crosses filesystems
+        fd, tmp_file = tempfile.mkstemp(
+            dir=os.path.dirname(os.path.abspath(persist_file)),
+            prefix='.persist-',
+            suffix='.tmp',
+            )
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(state, f)
+            os.replace(tmp_file, persist_file)
+        except BaseException:
+            os.unlink(tmp_file)
+            raise
 
 
 def periodic_save():
-    PersistentCounter.save_all()
+    # A failed save must not stop the next ones (the timer below would never
+    # be started again)
+    try:
+        PersistentCounter.save_all()
+    except Exception as e:
+        logger.error(f"Unable to save Counter persistence [{e}]")
     # Daemon, so it never keeps the process alive once the exporter exits
     timer = threading.Timer(env_vars['PERSIST_TIMER'], periodic_save)
     timer.daemon = True

@@ -7,7 +7,8 @@ import pytest
 from prometheus_client import REGISTRY
 
 from conftest import sample, unique
-from models.persistent_counter import PersistentCounter
+from models import persistent_counter
+from models.persistent_counter import PersistentCounter, periodic_save
 from variables import env_vars
 
 
@@ -93,3 +94,54 @@ def test_invalid_persist_file_is_ignored(persist_file, make_counter):
     counter.labels(guild='guild', member='member').inc()
 
     assert sample(f'{name}_total', guild='guild', member='member') == 1
+
+
+def test_failed_save_keeps_the_previous_file(monkeypatch, persist_file, make_counter):
+    persist_file.write_text('{"previous": 1}')
+    counter = make_counter(unique('test_counter').replace('-', '_'))
+    counter.labels(guild='guild', member='member').inc()
+
+    # Dies halfway through writing, like a crash or a full disk would
+    def broken_dump(state, f):
+        f.write('{"trunc')
+        raise OSError('No space left on device')
+    monkeypatch.setattr(persistent_counter.json, 'dump', broken_dump)
+
+    with pytest.raises(OSError):
+        PersistentCounter.save_all()
+
+    assert persist_file.read_text() == '{"previous": 1}'
+    # No temporary file left behind
+    assert [p.name for p in persist_file.parent.iterdir()] == ['persist.json']
+
+
+def test_save_leaves_no_temporary_file(persist_file, make_counter):
+    counter = make_counter(unique('test_counter').replace('-', '_'))
+    counter.labels(guild='guild', member='member').inc()
+
+    PersistentCounter.save_all()
+    PersistentCounter.save_all()
+
+    assert [p.name for p in persist_file.parent.iterdir()] == ['persist.json']
+
+
+def test_periodic_save_keeps_going_after_a_failure(monkeypatch):
+    timers = []
+
+    class FakeTimer:
+        def __init__(self, interval, function):
+            timers.append(function)
+
+        def start(self):
+            pass
+
+    def broken_save():
+        raise OSError('No space left on device')
+
+    monkeypatch.setattr(persistent_counter.threading, 'Timer', FakeTimer)
+    monkeypatch.setattr(PersistentCounter, 'save_all', broken_save)
+
+    periodic_save()
+
+    # The next save is still scheduled
+    assert timers == [periodic_save]
