@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM python:3.13-alpine3.22 as builder
+FROM python:3.13-alpine3.22 AS builder
 
 # Create user and group
 RUN adduser -h /code -u 1000 -D -H exporter
