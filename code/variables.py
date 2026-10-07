@@ -13,6 +13,24 @@ env_vars = {
     "PERSIST_TIMER": int(os.environ.get("PERSIST_TIMER", 60)),
     "POLLING_INTERVAL": int(os.getenv('POLLING_INTERVAL', 10)),
 }
-# Print the environment variables for debugging
-for var, value in env_vars.items():
-    logger.debug(f"{var}: {value}")
+# Never written to the logs in full
+SECRET_VARS = ('DISCORD_TOKEN',)
+
+
+def mask(value):
+    """Keep only both ends, enough to tell which token is set."""
+    # Too short to show anything without revealing most of it
+    if len(value) < 20:
+        return '********'
+    return f'{value[:4]}...{value[-4:]}'
+
+
+def log_env_vars():
+    """Print the environment variables for debugging, secrets masked."""
+    for var, value in env_vars.items():
+        if var in SECRET_VARS and value is not None:
+            value = mask(value)
+        logger.debug(f"{var}: {value}")
+
+
+log_env_vars()
