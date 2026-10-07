@@ -158,6 +158,10 @@ NB: The persistence is not enabled by default, to be as light as possible.
 
 You can import directly in Grafana the related Dashboard [here][dashboard].
 
+#### Perses
+
+You can import directly in [Perses][perses] the related Dashboard [here][perses-dashboard].
+
 #### Disclaimer/Reminder
 
 > Always store somewhere safe your BOT Token.  
