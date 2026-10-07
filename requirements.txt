@@ -47,8 +47,10 @@ propcache==0.3.2
     # via
     #   aiohttp
     #   yarl
-py-cord==2.6.1
+py-cord==2.8.1
     # via -r requirements.in
+typing-extensions==4.16.0
+    # via py-cord
 werkzeug==3.1.9
     # via flask
 yarl==1.20.1
