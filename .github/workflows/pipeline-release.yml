@@ -18,9 +18,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
   build-push:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    needs:
+    - lint
 
     steps:
     - name: Checkout 🛎️
