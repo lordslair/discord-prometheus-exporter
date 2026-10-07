@@ -24,7 +24,7 @@ jobs:
         echo "version=$(sed -nE 's/^FROM python:([0-9.]+)-.*/\1/p' Dockerfile | head -1)" >> "$GITHUB_OUTPUT"
 
     - name: Set up Python ${{ steps.pyver.outputs.version }} 🐍
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ steps.pyver.outputs.version }}
         cache: pip
