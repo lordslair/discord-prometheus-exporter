@@ -46,14 +46,14 @@ If you want to use a probe to check the exporter status (on /healthz):
 ### Exported metrics so far
 
 ```
-# HELP discord_latency            The time in ms that discord took to respond.
-# HELP discord_members_registered The number of connected members on a Guild.
+# HELP discord_latency            The Discord WebSocket latency (heartbeat round trip), in seconds.
+# HELP discord_members_registered The number of members (bots excluded) on a Guild.
 # HELP discord_members_online     The number of online members on a Guild.
-# HELP discord_bots_registered    The number of connected bots on a Guild.
+# HELP discord_bots_registered    The number of bots on a Guild.
 # HELP discord_bots_online        The number of online bots on a Guild.
 # HELP discord_boosts             The number of Server Boosts on a Guild.
 # HELP discord_messages_total     The number of messages sent on a Guild by a Member.
-# HELP discord_reactions_total    The number of messages sent on a Guild by a Member.
+# HELP discord_reactions_total    The number of reactions added on a Guild by a Member.
 ```
 
 ### Tech
@@ -74,7 +74,7 @@ And of course GitHub to store all these shenanigans.
 You can build the container yourself :
 ```
 $ git clone https://github.com/lordslair/discord-prometheus-exporter
-$ cd discord-prometheus-exporter/docker
+$ cd discord-prometheus-exporter
 $ docker build .
 ```
 

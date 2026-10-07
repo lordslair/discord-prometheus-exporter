@@ -11,11 +11,11 @@ METRICS = {}
 # Gauges
 METRICS['PING'] = Gauge(
     'discord_latency',
-    'The time in ms that discord took to respond to a REST request.',
+    'The Discord WebSocket latency (heartbeat round trip), in seconds.',
     )
 METRICS['MEMBERS_REGISTERED'] = Gauge(
     'discord_members_registered',
-    'The number of connected members on a Guild.',
+    'The number of members (bots excluded) on a Guild.',
     ['guild'],
     )
 METRICS['MEMBERS_ONLINE'] = Gauge(
@@ -25,7 +25,7 @@ METRICS['MEMBERS_ONLINE'] = Gauge(
     )
 METRICS['BOTS_REGISTERED'] = Gauge(
     'discord_bots_registered',
-    'The number of connected bots on a Guild.',
+    'The number of bots on a Guild.',
     ['guild'],
     )
 METRICS['BOTS_ONLINE'] = Gauge(

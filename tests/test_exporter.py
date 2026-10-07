@@ -25,6 +25,18 @@ def test_update_ping(fake_client):
     assert sample('discord_latency') == 0.123
 
 
+@pytest.mark.parametrize('latency', [float('nan'), float('inf')])
+def test_update_ping_skips_unknown_latency(fake_client, latency):
+    fake_client.latency = 0.042
+    exporter.update_ping()
+
+    # Not connected yet (inf), or disconnected (nan)
+    fake_client.latency = latency
+    exporter.update_ping()
+
+    assert sample('discord_latency') == 0.042
+
+
 def test_update_registered(fake_client):
     guild = FakeGuild([FakeMember(), FakeMember(), FakeMember(bot=True)])
     fake_client.guilds = [guild]

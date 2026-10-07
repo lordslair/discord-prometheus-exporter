@@ -3,6 +3,7 @@
 
 import asyncio
 import discord
+import math
 import sys
 import threading
 
@@ -70,7 +71,11 @@ client = discord.Client(intents=intents)
 #
 
 def update_ping():
-    METRICS['PING'].set(client.latency)
+    latency = client.latency
+    # NaN while disconnected, infinite until the first heartbeat is answered:
+    # keep the last real value instead of exporting those
+    if math.isfinite(latency):
+        METRICS['PING'].set(latency)
 
 
 def update_registered():
