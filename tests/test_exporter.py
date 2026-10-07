@@ -8,9 +8,10 @@ import discord
 import pytest
 
 from loguru import logger
+from prometheus_client import REGISTRY
 
 import exporter
-from conftest import FakeGuild, FakeMember, sample
+from conftest import FakeGuild, FakeMember, sample, unique
 from models.persistent_counter import PersistentCounter
 from variables import env_vars
 
@@ -98,6 +99,80 @@ def test_update_boost(fake_client):
     exporter.update_boost()
 
     assert sample('discord_boosts', guild=guild.name) == 7
+
+
+# Each update, and the gauges it exports per guild
+GUILD_UPDATES = [
+    (exporter.update_registered, ['discord_members_registered', 'discord_bots_registered']),
+    (exporter.update_online, ['discord_members_online', 'discord_bots_online']),
+    (exporter.update_boost, ['discord_boosts']),
+]
+
+
+def exported(metrics, guild):
+    """Whether any of these gauges has a series for this guild."""
+    return any(
+        REGISTRY.get_sample_value(name, {'guild': guild.name}) is not None
+        for name in metrics
+        )
+
+
+@pytest.mark.parametrize('update, metrics', GUILD_UPDATES)
+def test_joined_guild_is_exported(fake_client, update, metrics):
+    first = FakeGuild([FakeMember()])
+    fake_client.guilds = [first]
+    update()
+
+    joined = FakeGuild([FakeMember(), FakeMember(bot=True)])
+    fake_client.guilds = [first, joined]
+    update()
+
+    assert exported(metrics, first)
+    assert exported(metrics, joined)
+
+
+@pytest.mark.parametrize('update, metrics', GUILD_UPDATES)
+def test_left_guild_is_removed(fake_client, update, metrics):
+    staying, leaving = FakeGuild([FakeMember()]), FakeGuild([FakeMember()])
+    fake_client.guilds = [staying, leaving]
+    update()
+
+    fake_client.guilds = [staying]
+    update()
+
+    assert exported(metrics, staying)
+    assert not exported(metrics, leaving)
+
+
+@pytest.mark.parametrize('update, metrics', GUILD_UPDATES)
+def test_renamed_guild_keeps_only_its_new_name(fake_client, update, metrics):
+    guild = FakeGuild([FakeMember()])
+    fake_client.guilds = [guild]
+    update()
+    old_name = guild.name
+
+    guild.name = unique('renamed')
+    update()
+
+    assert exported(metrics, guild)
+    assert not any(
+        REGISTRY.get_sample_value(name, {'guild': old_name}) is not None
+        for name in metrics
+        )
+
+
+@pytest.mark.parametrize('update, metrics', GUILD_UPDATES)
+def test_nothing_removed_until_ready(fake_client, update, metrics):
+    guild = FakeGuild([FakeMember()])
+    fake_client.guilds = [guild]
+    update()
+
+    # Reconnecting: guild list not loaded yet
+    fake_client.ready = False
+    fake_client.guilds = []
+    update()
+
+    assert exported(metrics, guild)
 
 
 def test_updates_without_guilds(fake_client):

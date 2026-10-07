@@ -78,6 +78,29 @@ def update_ping():
         METRICS['PING'].set(latency)
 
 
+def prune_guilds(*keys):
+    """
+    Remove the series of guilds the bot is no longer in from these gauges.
+
+    Covers a guild the bot left, and a renamed one (labels are guild names):
+    otherwise their last values would stay exported forever.
+    """
+    # Until ready (startup, reconnection), the guild list is empty or partial:
+    # pruning then would drop the series of guilds the bot is still in
+    if not client.is_ready():
+        return
+    current = {str(guild) for guild in client.guilds}
+    for key in keys:
+        exported = {
+            sample.labels['guild']
+            for metric in METRICS[key].collect()
+            for sample in metric.samples
+            }
+        for guild in exported - current:
+            METRICS[key].remove(guild)
+            logger.debug(f'[Exporter] Removed guild [{guild}] from {key}')
+
+
 def update_registered():
     for guild in client.guilds:
         members_registered = 0
@@ -89,6 +112,7 @@ def update_registered():
                 bots_registered += 1
         METRICS['BOTS_REGISTERED'].labels(guild=guild).set(bots_registered)
         METRICS['MEMBERS_REGISTERED'].labels(guild=guild).set(members_registered)
+    prune_guilds('BOTS_REGISTERED', 'MEMBERS_REGISTERED')
 
 
 def update_online():
@@ -104,11 +128,13 @@ def update_online():
                 bots_online += 1
         METRICS['BOTS_ONLINE'].labels(guild=guild).set(bots_online)
         METRICS['MEMBERS_ONLINE'].labels(guild=guild).set(members_online)
+    prune_guilds('BOTS_ONLINE', 'MEMBERS_ONLINE')
 
 
 def update_boost():
     for guild in client.guilds:
         METRICS['BOOSTS'].labels(guild=guild).set(guild.premium_subscription_count)
+    prune_guilds('BOOSTS')
 
 
 async def poll(update, timer):
