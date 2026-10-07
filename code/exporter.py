@@ -12,6 +12,7 @@ from loguru import logger
 
 from variables import env_vars
 from metrics import METRICS
+from models.persistent_counter import periodic_save
 
 # ========== Health Check Setup ==========
 app = Flask(__name__)
@@ -39,9 +40,6 @@ def run_flask():
         )
 # ========================================
 
-
-if env_vars['DISCORD_TOKEN'] is None:
-    logger.error('[Exporter][✗] ENV var DISCORD_TOKEN not found')
 
 try:
     # Intents are needed since 2020 for Member and Messages infos
@@ -142,14 +140,6 @@ async def request_boost(timer):
 
         await asyncio.sleep(timer)
 
-# Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
-client.loop.create_task(request_ping(env_vars['POLLING_INTERVAL']))
-client.loop.create_task(request_registered(env_vars['POLLING_INTERVAL']))
-client.loop.create_task(request_online(env_vars['POLLING_INTERVAL']))
-client.loop.create_task(request_boost(env_vars['POLLING_INTERVAL']))
-
-start_http_server(env_vars['EXPORTER_PORT'])
-
 
 @client.event
 async def on_message(ctx):
@@ -168,22 +158,42 @@ async def on_reaction_add(reaction, member):
     except Exception as e:
         logger.error(f'[Exporter] Unable to retrieve data [{e}]')
 
-# ========== Start Flask Health Server in Thread ==========
-flask_thread = threading.Thread(target=run_flask, daemon=True)
-flask_thread.start()
-# ========================================================
 
-# Run Discord client
-iter = 0
-while iter < 5:
-    try:
-        client.run(env_vars['DISCORD_TOKEN'])
-        break
-    except Exception as e:
-        logger.error(
-            f'[Exporter][✗] '
-            f'Discord client.run failed (Attempt: {iter+1}/5 [{e}])'
-            )
-        iter += 1
-        time.sleep(5)
-        continue
+def main():
+    if env_vars['DISCORD_TOKEN'] is None:
+        logger.error('[Exporter][✗] ENV var DISCORD_TOKEN not found')
+
+    # Persist Counters every PERSIST_TIMER seconds
+    periodic_save()
+
+    # Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
+    client.loop.create_task(request_ping(env_vars['POLLING_INTERVAL']))
+    client.loop.create_task(request_registered(env_vars['POLLING_INTERVAL']))
+    client.loop.create_task(request_online(env_vars['POLLING_INTERVAL']))
+    client.loop.create_task(request_boost(env_vars['POLLING_INTERVAL']))
+
+    start_http_server(env_vars['EXPORTER_PORT'])
+
+    # ========== Start Flask Health Server in Thread ==========
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    # ========================================================
+
+    # Run Discord client
+    iter = 0
+    while iter < 5:
+        try:
+            client.run(env_vars['DISCORD_TOKEN'])
+            break
+        except Exception as e:
+            logger.error(
+                f'[Exporter][✗] '
+                f'Discord client.run failed (Attempt: {iter+1}/5 [{e}])'
+                )
+            iter += 1
+            time.sleep(5)
+            continue
+
+
+if __name__ == '__main__':
+    main()

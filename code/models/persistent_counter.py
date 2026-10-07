@@ -95,6 +95,3 @@ class PersistentCounter:
 def periodic_save():
     PersistentCounter.save_all()
     threading.Timer(env_vars['PERSIST_TIMER'], periodic_save).start()
-
-
-periodic_save()
