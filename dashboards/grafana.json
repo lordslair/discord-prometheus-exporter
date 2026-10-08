@@ -1865,7 +1865,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "discord_messages_total",
+        "definition": "label_values(discord_members_registered, guild)",
         "hide": 0,
         "includeAll": true,
         "label": "Guild",
@@ -1873,11 +1873,11 @@
         "name": "guild",
         "options": [],
         "query": {
-          "query": "discord_messages_total",
-          "refId": "StandardVariableQuery"
+          "query": "label_values(discord_members_registered, guild)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": ".*guild=\"([^\"]*)\".*",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",
@@ -1900,7 +1900,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "discord_messages_total",
+        "definition": "label_values(discord_messages_total{guild=~\"$guild\"}, member)",
         "hide": 0,
         "includeAll": true,
         "label": "Member",
@@ -1908,11 +1908,11 @@
         "name": "member",
         "options": [],
         "query": {
-          "query": "discord_messages_total",
-          "refId": "StandardVariableQuery"
+          "query": "label_values(discord_messages_total{guild=~\"$guild\"}, member)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": ".*member=\"([^\"]*)\".*",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "tagValuesQuery": "",

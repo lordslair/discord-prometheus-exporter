@@ -1258,6 +1258,24 @@
         "kind": "ListVariable",
         "spec": {
           "display": {
+            "hidden": false
+          },
+          "defaultValue": "Prometheus",
+          "allowAllValue": false,
+          "allowMultiple": false,
+          "plugin": {
+            "kind": "DatasourceVariable",
+            "spec": {
+              "datasourcePluginKind": "PrometheusDatasource"
+            }
+          },
+          "name": "datasource"
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "display": {
             "name": "Guild",
             "hidden": false
           },
@@ -1269,13 +1287,12 @@
           "customAllValue": ".*",
           "sort": "alphabetical-asc",
           "plugin": {
-            "kind": "StaticListVariable",
+            "kind": "PrometheusLabelValuesVariable",
             "spec": {
-              "values": [
-                "grafana",
-                "migration",
-                "not",
-                "supported"
+              "datasource": "${datasource}",
+              "labelName": "guild",
+              "matchers": [
+                "discord_members_registered"
               ]
             }
           },
@@ -1297,35 +1314,16 @@
           "customAllValue": ".*",
           "sort": "alphabetical-asc",
           "plugin": {
-            "kind": "StaticListVariable",
+            "kind": "PrometheusLabelValuesVariable",
             "spec": {
-              "values": [
-                "grafana",
-                "migration",
-                "not",
-                "supported"
+              "datasource": "${datasource}",
+              "labelName": "member",
+              "matchers": [
+                "discord_messages_total{guild=~\"$guild\"}"
               ]
             }
           },
           "name": "member"
-        }
-      },
-      {
-        "kind": "ListVariable",
-        "spec": {
-          "display": {
-            "hidden": false
-          },
-          "defaultValue": "Prometheus",
-          "allowAllValue": false,
-          "allowMultiple": false,
-          "plugin": {
-            "kind": "DatasourceVariable",
-            "spec": {
-              "datasourcePluginKind": "PrometheusDatasource"
-            }
-          },
-          "name": "datasource"
         }
       }
     ],
