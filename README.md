@@ -30,8 +30,8 @@ They are passed to the container as ENV variables.
 | `EXPORTER_PORT` | Prometheus metrics listening port (on `/metrics`) | `8080` |
 | `HEALTH_PORT` | Healthcheck listening port (on `/healthz`) | `8081` |
 | `POLLING_INTERVAL` | Interval in seconds between two metrics updates | `10` |
-| `PERSIST_FILE` | Complete path to the persistence file (see [Persistence](#persistence)) | None (disabled) |
-| `PERSIST_TIMER` | Interval in seconds between two persistence saves | `60` |
+| `PERSIST_FILE` | Complete path to the persistence file, or `s3://bucket/key` for an S3 object (see [Persistence](#persistence)) | None (disabled) |
+| `PERSIST_TIMER` | Interval in seconds between two persistence saves | `60` (`900` with S3) |
 | `LOGURU_LEVEL` | Minimal level for log output | `DEBUG` |
 
 ### Output on container start
@@ -165,6 +165,41 @@ The file needs to be on a volume to be useful:
 - Kubernetes: the example uses an `emptyDir`, which survives container restarts, but not the Pod deletion (new deployments included). Use a `PersistentVolumeClaim` to keep the Counters across those.
 - Docker: mount a host directory, like `-v /srv/dpe:/data -e PERSIST_FILE=/data/counters.json`.  
   The exporter runs as UID `1000`, which needs write access to it.
+
+##### In an S3 bucket
+
+Instead of a volume, the file can be an object in an S3 bucket: on AWS, or any S3 compatible storage (OVHcloud, Scaleway, MinIO...).  
+Set `PERSIST_FILE=s3://<BUCKET>/<KEY>`, and the usual AWS variables:
+
+| Variable | Description | Default |
+|---|---|---|
+| `AWS_ACCESS_KEY_ID` | Access key (**Mandatory**) | - |
+| `AWS_SECRET_ACCESS_KEY` | Secret key (**Mandatory**) | - |
+| `AWS_SESSION_TOKEN` | Session token, for temporary credentials | None |
+| `AWS_REGION` | Bucket region (or `AWS_DEFAULT_REGION`) | `us-east-1` |
+| `AWS_ENDPOINT_URL` | S3 endpoint, when not on AWS (like `https://s3.gra.io.cloud.ovh.net`) | AWS |
+
+```
+$ docker run -d \
+    -e DISCORD_TOKEN='<YOUR_DISCORD_BOT_TOKEN>' \
+    -e PERSIST_FILE='s3://<BUCKET>/discord/counters.json' \
+    -e AWS_ENDPOINT_URL='https://s3.<REGION>.io.cloud.ovh.net' \
+    -e AWS_REGION='<REGION>' \
+    -e AWS_ACCESS_KEY_ID='<ACCESS_KEY>' \
+    -e AWS_SECRET_ACCESS_KEY='<SECRET_KEY>' \
+    -p 8080:8080 \
+    lordslair/discord-prometheus-exporter:latest
+```
+
+Good to know:
+- The credentials need to read and write the object (`s3:GetObject` and `s3:PutObject`). The object is created by the first save.
+- Credentials are read from these variables only (no IAM roles or instance profiles).
+- Values are used as is: no quotes around them (in an `--env-file` or a Secret, quotes would be part of the value).
+- Each save is a request: `PERSIST_TIMER` defaults to 15 minutes (`900`) with S3, instead of 1 minute. That's ~3k requests per month instead of ~43k. A clean stop still saves, so only a crash (OOM, node failure...) can lose up to the last `PERSIST_TIMER` seconds of counts.
+- On AWS, the [Free Tier](https://aws.amazon.com/s3/pricing/) of new accounts includes 2,000 PUT requests per month (for 6 months). To fit in it, set `PERSIST_TIMER` to `1340` or more (a 31-day month has 2,678,400 seconds, divided by 2,000 PUTs). `1800` (30 minutes, ~1,500 PUTs per month) leaves room for the saves on each stop, and for the other uses of the account.
+- The object is written only when something changed since the previous save.
+- If the object can't be read at startup (network, credentials, wrong bucket...), the exporter exits with an error code, and the container gets restarted: starting empty would overwrite the saved Counters with the first save.
+- Keep the bucket private: the file holds the IDs of the members seen in voice.
 
 NB: The persistence is not enabled by default, to be as light as possible.
 

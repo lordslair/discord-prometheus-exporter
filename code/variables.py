@@ -4,13 +4,27 @@ import os
 
 from loguru import logger
 
+
+def default_persist_timer(persist_file):
+    """
+    Seconds between two persistence saves, when PERSIST_TIMER isn't set.
+
+    Saving to S3 is a request each time (counted, sometimes billed): less often
+    than to a local file. Nothing is lost on a clean stop, which saves anyway.
+    """
+    if persist_file and persist_file.startswith('s3://'):
+        return 900
+    return 60
+
+
 # Grab the environment variables
 env_vars = {
     "DISCORD_TOKEN": os.environ.get("DISCORD_TOKEN"),
     "EXPORTER_PORT": int(os.getenv('EXPORTER_PORT', '8080')),
     "HEALTH_PORT": int(os.getenv('HEALTH_PORT', '8081')),
     "PERSIST_FILE": os.environ.get("PERSIST_FILE", None),
-    "PERSIST_TIMER": int(os.environ.get("PERSIST_TIMER", 60)),
+    "PERSIST_TIMER": int(os.environ.get(
+        "PERSIST_TIMER", default_persist_timer(os.environ.get("PERSIST_FILE")))),
     "POLLING_INTERVAL": int(os.getenv('POLLING_INTERVAL', 10)),
 }
 # Never written to the logs in full

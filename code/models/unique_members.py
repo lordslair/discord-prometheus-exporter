@@ -5,7 +5,7 @@ import threading
 from loguru import logger
 from prometheus_client import Gauge
 
-from models.persistent_counter import PersistentCounter, read_state
+from models.persistent_counter import PersistentCounter, S3Unavailable, read_state
 from variables import env_vars
 
 # Rolling windows the unique members are counted over, in seconds
@@ -62,6 +62,9 @@ class UniqueMembers:
                 guild_id: {member_id: float(last) for member_id, last in members.items()}
                 for guild_id, members in seen.items()
                 }
+        except S3Unavailable:
+            # Reported once by check_s3, before the exporter exits
+            pass
         except Exception as e:
             logger.error(f"Error loading persistence file [{env_vars['PERSIST_FILE']}]: {e}")
         else:

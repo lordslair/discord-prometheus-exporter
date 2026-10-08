@@ -145,3 +145,123 @@ def test_periodic_save_keeps_going_after_a_failure(monkeypatch):
 
     # The next save is still scheduled
     assert timers == [periodic_save]
+
+
+#
+# S3 persistence file
+#
+
+class FakeS3:
+    """In-memory S3 storage, counting the requests."""
+
+    def __init__(self):
+        self.objects = {}
+        self.gets = 0
+        self.puts = 0
+        self.error = None
+
+    def object(self, bucket, key):
+        storage = self
+
+        class FakeS3Object:
+            def get(self):
+                storage.gets += 1
+                if storage.error:
+                    raise storage.error
+                return storage.objects.get((bucket, key))
+
+            def put(self, payload):
+                storage.puts += 1
+                storage.objects[(bucket, key)] = payload
+
+        return FakeS3Object()
+
+
+S3_FILE = 's3://bucket/dpe/counters.json'
+
+
+@pytest.fixture
+def s3(monkeypatch):
+    storage = FakeS3()
+    monkeypatch.setattr(persistent_counter, 'S3Object', storage.object)
+    monkeypatch.setattr(persistent_counter, '_s3_cache', {})
+    monkeypatch.setattr(persistent_counter, '_s3_saved', {})
+    monkeypatch.setitem(env_vars, 'PERSIST_FILE', S3_FILE)
+    return storage
+
+
+def s3_restart(counter, make_counter):
+    """Restart, from a new process: nothing fetched or saved yet."""
+    persistent_counter._s3_cache.clear()
+    persistent_counter._s3_saved.clear()
+    return restart(counter, make_counter)
+
+
+def test_counter_survives_a_restart_on_s3(s3, make_counter):
+    name = unique('test_counter').replace('-', '_')
+    counter = make_counter(name)
+    counter.labels(guild='guild', member='member').inc(3)
+
+    PersistentCounter.save_all()
+    s3_restart(counter, make_counter)
+
+    assert json.loads(s3.objects[('bucket', 'dpe/counters.json')]) == {
+        f'{name}_total:{json.dumps({"guild": "guild", "member": "member"})}': 3,
+    }
+    assert sample(f'{name}_total', guild='guild', member='member') == 3
+
+
+def test_missing_s3_object_starts_empty(s3, make_counter):
+    name = unique('test_counter').replace('-', '_')
+    counter = make_counter(name)
+    counter.labels(guild='guild', member='member').inc()
+
+    # First start: created by the first save
+    assert persistent_counter.check_s3()
+    PersistentCounter.save_all()
+
+    assert ('bucket', 'dpe/counters.json') in s3.objects
+
+
+def test_s3_object_fetched_once(s3, make_counter):
+    make_counter(unique('test_counter').replace('-', '_'))
+    make_counter(unique('test_counter').replace('-', '_'))
+    persistent_counter.check_s3()
+
+    assert s3.gets == 1
+
+
+def test_unchanged_state_not_saved_again_on_s3(s3, make_counter):
+    counter = make_counter(unique('test_counter').replace('-', '_'))
+    counter.labels(guild='guild', member='member').inc()
+
+    PersistentCounter.save_all()
+    PersistentCounter.save_all()
+    counter.labels(guild='guild', member='member').inc()
+    PersistentCounter.save_all()
+
+    assert s3.puts == 2
+
+
+def test_unreadable_s3_object(s3, make_counter):
+    s3.error = OSError('Connection refused')
+
+    make_counter(unique('test_counter').replace('-', '_'))
+
+    assert not persistent_counter.check_s3()
+    # Fetched once, failure included
+    assert s3.gets == 1
+
+
+@pytest.mark.parametrize('persist_file', ['s3://bucket', 's3://bucket/', 's3:///key'])
+def test_invalid_s3_persist_file(s3, monkeypatch, persist_file):
+    monkeypatch.setitem(env_vars, 'PERSIST_FILE', persist_file)
+
+    assert not persistent_counter.check_s3()
+
+
+def test_check_s3_ignores_local_files(persist_file):
+    # Even unreadable: a local file is ignored, as it always was
+    persist_file.write_text('not json')
+
+    assert persistent_counter.check_s3()

@@ -44,9 +44,26 @@ spec:
         #  value: '8081'
         #- name: POLLING_INTERVAL
         #  value: '10'
-        # Keeps message and reaction counters across container restarts
+        # Keeps the counters across container restarts
         - name: PERSIST_FILE
           value: '/data/counters.json'
+        # Or in an S3 bucket (no volume needed), credentials from a Secret:
+        #- name: PERSIST_FILE
+        #  value: 's3://<BUCKET>/discord/counters.json'
+        #- name: AWS_ENDPOINT_URL  # Not on AWS: your S3 storage endpoint
+        #  value: 'https://s3.<REGION>.io.cloud.ovh.net'
+        #- name: AWS_REGION
+        #  value: '<REGION>'
+        #- name: AWS_ACCESS_KEY_ID
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: discord-prometheus-exporter
+        #      key: AWS_ACCESS_KEY_ID
+        #- name: AWS_SECRET_ACCESS_KEY
+        #  valueFrom:
+        #    secretKeyRef:
+        #      name: discord-prometheus-exporter
+        #      key: AWS_SECRET_ACCESS_KEY
         - name: DISCORD_TOKEN
           value: '<YOUR_DISCORD_BOT_TOKEN>'
         # Other env vars

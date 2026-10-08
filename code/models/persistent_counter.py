@@ -8,6 +8,7 @@ import threading
 from loguru import logger
 from prometheus_client import Counter
 
+from models.s3 import S3Object
 from variables import env_vars
 
 
@@ -64,6 +65,9 @@ class PersistentCounter:
                 if metric == f'{self._name}_total':
                     label_dict = json.loads(label_json)
                     self.counter.labels(**label_dict).inc(value)
+        except S3Unavailable:
+            # Reported once by check_s3, before the exporter exits
+            pass
         except Exception as e:
             logger.error(f"Error loading persistence file [{env_vars['PERSIST_FILE']}]: {e}")
         else:
@@ -96,7 +100,10 @@ class PersistentCounter:
             for instance in cls._registry:
                 state.update(instance._state())
             if state:  # Only write if state is not empty
-                cls._write_atomic(persist_file, state)
+                if is_s3(persist_file):
+                    write_s3(persist_file, state)
+                else:
+                    cls._write_atomic(persist_file, state)
                 logger.trace(f"Saved Counter persistence [{persist_file}]")
 
     @staticmethod
@@ -122,9 +129,74 @@ class PersistentCounter:
             raise
 
 
+def is_s3(persist_file):
+    """Whether the persistence file is an S3 object (s3://bucket/key)."""
+    return persist_file.startswith('s3://')
+
+
+def s3_object(persist_file):
+    """The S3 object of an s3://bucket/key persistence file."""
+    bucket, _, key = persist_file.removeprefix('s3://').partition('/')
+    if not bucket or not key:
+        raise ValueError(f'Invalid S3 persistence file [{persist_file}], expected s3://bucket/key')
+    return S3Object(bucket, key)
+
+
+# S3 object content, fetched once for all the metrics loading from it:
+# persistence file -> content (bytes, None if missing), or the fetch error
+_s3_cache = {}
+# Last payload written to S3: unchanged saves are skipped (each one is a request)
+_s3_saved = {}
+
+
+class S3Unavailable(Exception):
+    """The S3 persistence file couldn't be read: check_s3 reports why."""
+
+
+def read_s3(persist_file):
+    """The S3 object's content, None if it doesn't exist. Raises if it can't be read."""
+    if persist_file not in _s3_cache:
+        try:
+            _s3_cache[persist_file] = s3_object(persist_file).get()
+        except Exception as e:
+            _s3_cache[persist_file] = S3Unavailable(e)
+    content = _s3_cache[persist_file]
+    if isinstance(content, Exception):
+        raise content
+    return content
+
+
+def write_s3(persist_file, state):
+    """Replace the S3 object's content with this state, if it changed."""
+    payload = json.dumps(state).encode('utf-8')
+    if _s3_saved.get(persist_file) != payload:
+        s3_object(persist_file).put(payload)
+        _s3_saved[persist_file] = payload
+
+
+def check_s3():
+    """
+    Whether the persistence file can be read, when it's an S3 object.
+
+    Unlike a local file, reading it can fail for a while (network, storage):
+    starting anyway would overwrite the saved state with an empty one.
+    """
+    persist_file = env_vars['PERSIST_FILE']
+    if persist_file and is_s3(persist_file):
+        try:
+            read_s3(persist_file)
+        except S3Unavailable as e:
+            logger.error(f"Unable to read the persistence file [{persist_file}]: {e}")
+            return False
+    return True
+
+
 def read_state():
     """Content of the persistence file, empty if disabled or missing."""
     persist_file = env_vars['PERSIST_FILE']
+    if persist_file and is_s3(persist_file):
+        content = read_s3(persist_file)
+        return json.loads(content) if content else {}
     if persist_file and os.path.exists(persist_file):
         with open(persist_file, 'r', encoding='utf-8') as f:
             return json.load(f)

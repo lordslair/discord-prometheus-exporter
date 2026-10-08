@@ -4,7 +4,7 @@ import pytest
 
 from loguru import logger
 
-from variables import env_vars, log_env_vars
+from variables import default_persist_timer, env_vars, log_env_vars
 
 
 @pytest.fixture
@@ -50,3 +50,13 @@ def test_other_vars_are_logged(monkeypatch, logs):
     log_env_vars()
 
     assert 'POLLING_INTERVAL: 10\n' in logs
+
+
+@pytest.mark.parametrize('persist_file, timer', [
+    (None, 60),
+    ('/data/counters.json', 60),
+    # Each save is a request
+    ('s3://bucket/dpe/counters.json', 900),
+])
+def test_default_persist_timer(persist_file, timer):
+    assert default_persist_timer(persist_file) == timer

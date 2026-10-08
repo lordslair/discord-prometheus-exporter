@@ -686,6 +686,7 @@ def no_servers(monkeypatch):
     """Keep main() from starting the save timer and the HTTP servers."""
     monkeypatch.setitem(env_vars, 'DISCORD_TOKEN', 'test-token')
     monkeypatch.setattr(exporter, 'periodic_save', lambda: None)
+    monkeypatch.setattr(exporter, 'check_s3', lambda: True)
     monkeypatch.setattr(exporter, 'start_http_server', lambda port: None)
     monkeypatch.setattr(exporter, 'start_health_server', lambda port: None)
 
@@ -742,4 +743,18 @@ def test_main_exits_without_token(monkeypatch, fake_client, no_servers):
 
     assert exc.value.code == 1
     # Fails before starting anything
+    assert started == []
+
+
+def test_main_exits_when_s3_is_unavailable(monkeypatch, fake_client, no_servers):
+    monkeypatch.setattr(exporter, 'check_s3', lambda: False)
+    started = []
+    monkeypatch.setattr(exporter, 'periodic_save', lambda: started.append(1))
+    fake_client.run = lambda token: started.append(1)
+
+    with pytest.raises(SystemExit) as exc:
+        exporter.main()
+
+    assert exc.value.code == 1
+    # Never saves, so the stored state is left as it is
     assert started == []

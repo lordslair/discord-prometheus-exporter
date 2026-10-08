@@ -14,7 +14,7 @@ from loguru import logger
 
 from variables import env_vars
 from metrics import METRICS
-from models.persistent_counter import PersistentCounter, periodic_save
+from models.persistent_counter import PersistentCounter, check_s3, periodic_save
 
 # ========== Health Check Setup ==========
 
@@ -258,6 +258,12 @@ def main():
     # Nothing works without it: fail now, not once everything is started
     if env_vars['DISCORD_TOKEN'] is None:
         logger.error('[Exporter][✗] ENV var DISCORD_TOKEN not found')
+        sys.exit(1)
+
+    # An S3 persistence file that couldn't be read would be overwritten by the
+    # first save: exit instead, and let the container restart to try again
+    if not check_s3():
+        logger.error('[Exporter][✗] Persistence file unavailable')
         sys.exit(1)
 
     # Persist Counters every PERSIST_TIMER seconds
