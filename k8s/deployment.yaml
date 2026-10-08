@@ -47,7 +47,8 @@ spec:
         # Keeps the counters across container restarts
         - name: PERSIST_FILE
           value: '/data/counters.json'
-        # Or in an S3 bucket (no volume needed), credentials from a Secret:
+        # Or in an S3 bucket, credentials from a Secret. Nothing is written on
+        # disk then: remove the volumeMounts and volumes blocks below
         #- name: PERSIST_FILE
         #  value: 's3://<BUCKET>/discord/counters.json'
         #- name: AWS_ENDPOINT_URL  # Not on AWS: your S3 storage endpoint
