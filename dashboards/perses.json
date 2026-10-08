@@ -599,6 +599,454 @@
             }
           ]
         }
+      },
+      "12": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "In Voice"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "colorMode": "none",
+              "format": {
+                "unit": "decimal"
+              },
+              "mappings": [
+                {
+                  "kind": "Misc",
+                  "spec": {
+                    "result": {
+                      "value": "N/A"
+                    },
+                    "value": "null"
+                  }
+                }
+              ],
+              "sparkline": {},
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 80
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "sum(discord_voice_members{guild=~\"$guild\"})",
+                    "seriesNameFormat": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "13": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Voice Members"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {}
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "sum(discord_voice_members{guild=~\"$guild\"}) by (guild)",
+                    "seriesNameFormat": "{{guild}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "14": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Voice Time"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "colorMode": "none",
+              "format": {
+                "unit": "minutes",
+                "decimalPlaces": 0
+              },
+              "mappings": [
+                {
+                  "kind": "Misc",
+                  "spec": {
+                    "result": {
+                      "value": "N/A"
+                    },
+                    "value": "null"
+                  }
+                }
+              ],
+              "sparkline": {},
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 80
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "sum(increase(discord_voice_seconds_total{guild=~\"$guild\"}[$__range])) / 60",
+                    "seriesNameFormat": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "15": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "In Events"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "colorMode": "none",
+              "format": {
+                "unit": "decimal"
+              },
+              "mappings": [
+                {
+                  "kind": "Misc",
+                  "spec": {
+                    "result": {
+                      "value": "N/A"
+                    },
+                    "value": "null"
+                  }
+                }
+              ],
+              "sparkline": {},
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 80
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "sum(discord_event_voice_members{guild=~\"$guild\"})",
+                    "seriesNameFormat": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "16": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Event Members"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {}
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "sum(discord_event_voice_members{guild=~\"$guild\"}) by (guild)",
+                    "seriesNameFormat": "{{guild}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "17": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Event Time"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "colorMode": "none",
+              "format": {
+                "unit": "minutes",
+                "decimalPlaces": 0
+              },
+              "mappings": [
+                {
+                  "kind": "Misc",
+                  "spec": {
+                    "result": {
+                      "value": "N/A"
+                    },
+                    "value": "null"
+                  }
+                }
+              ],
+              "sparkline": {},
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 80
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "sum(increase(discord_event_voice_seconds_total{guild=~\"$guild\"}[$__range])) / 60",
+                    "seriesNameFormat": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "18": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Voice Users (7d)"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "colorMode": "none",
+              "format": {
+                "unit": "decimal"
+              },
+              "mappings": [
+                {
+                  "kind": "Misc",
+                  "spec": {
+                    "result": {
+                      "value": "N/A"
+                    },
+                    "value": "null"
+                  }
+                }
+              ],
+              "sparkline": {},
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 80
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "discord_voice_unique_members{guild=~\"$guild\",window=\"7d\"}",
+                    "seriesNameFormat": "{{guild}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "19": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Unique Voice Members"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {}
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "discord_voice_unique_members{guild=~\"$guild\"}",
+                    "seriesNameFormat": "{{guild}} voice ({{window}})"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "discord_event_voice_unique_members{guild=~\"$guild\"}",
+                    "seriesNameFormat": "{{guild}} events ({{window}})"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "20": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Event Users (7d)"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "colorMode": "none",
+              "format": {
+                "unit": "decimal"
+              },
+              "mappings": [
+                {
+                  "kind": "Misc",
+                  "spec": {
+                    "result": {
+                      "value": "N/A"
+                    },
+                    "value": "null"
+                  }
+                }
+              ],
+              "sparkline": {},
+              "thresholds": {
+                "steps": [
+                  {
+                    "color": "#73bf69",
+                    "value": 0
+                  },
+                  {
+                    "color": "#f2495c",
+                    "value": 80
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "datasource": "${datasource}",
+                    "minStep": "",
+                    "query": "discord_event_voice_unique_members{guild=~\"$guild\",window=\"7d\"}",
+                    "seriesNameFormat": "{{guild}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "layouts": [
@@ -718,6 +1166,87 @@
               "height": 3,
               "content": {
                 "$ref": "#/spec/panels/11"
+              }
+            },
+            {
+              "x": 0,
+              "y": 28,
+              "width": 4,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/12"
+              }
+            },
+            {
+              "x": 4,
+              "y": 28,
+              "width": 20,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/13"
+              }
+            },
+            {
+              "x": 0,
+              "y": 32,
+              "width": 4,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/14"
+              }
+            },
+            {
+              "x": 0,
+              "y": 36,
+              "width": 4,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/15"
+              }
+            },
+            {
+              "x": 4,
+              "y": 36,
+              "width": 20,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/16"
+              }
+            },
+            {
+              "x": 0,
+              "y": 40,
+              "width": 4,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/17"
+              }
+            },
+            {
+              "x": 0,
+              "y": 44,
+              "width": 4,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/18"
+              }
+            },
+            {
+              "x": 4,
+              "y": 44,
+              "width": 20,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/19"
+              }
+            },
+            {
+              "x": 0,
+              "y": 48,
+              "width": 4,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/20"
               }
             }
           ]

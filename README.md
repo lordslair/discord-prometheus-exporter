@@ -60,14 +60,27 @@ The `Connected as` line comes once Discord is connected and the Guilds are loade
 | `discord_bots_registered` | Gauge | `guild` | The number of bots on a Guild |
 | `discord_bots_online` | Gauge | `guild` | The number of online bots on a Guild |
 | `discord_boosts` | Gauge | `guild` | The number of Server Boosts on a Guild |
+| `discord_voice_members` | Gauge | `guild` | The number of members (bots excluded) in a voice channel on a Guild |
+| `discord_event_voice_members` | Gauge | `guild` | The number of members (bots excluded) in the channel of an Event in progress on a Guild |
+| `discord_voice_unique_members` | Gauge | `guild`, `window` | The number of unique members (bots excluded) seen in a voice channel on a Guild |
+| `discord_event_voice_unique_members` | Gauge | `guild`, `window` | The number of unique members (bots excluded) seen in the channel of an Event in progress on a Guild |
 | `discord_messages_total` | Counter | `guild`, `member` | The number of messages sent on a Guild by a Member |
 | `discord_reactions_total` | Counter | `guild`, `member` | The number of reactions added on a Guild by a Member |
+| `discord_voice_seconds_total` | Counter | `guild` | The time spent in voice channels on a Guild by its members, in **seconds** |
+| `discord_event_voice_seconds_total` | Counter | `guild` | The time spent in the channels of Events in progress on a Guild by its members, in **seconds** |
 
 Good to know:
 - `guild` and `member` labels are the Guild and Member names.
 - "Online" means any status but offline (online, idle, do not disturb).
 - Messages and reactions from bots, or in direct messages to the BOT, are not counted.
 - Reactions are counted on any message, old ones included.
+- Voice covers voice and stage channels, except the Guild's AFK channel. Bots are not counted.
+- Voice time is measured every `POLLING_INTERVAL`: the members in voice at each update, multiplied by the time since the previous one. It's precise to one `POLLING_INTERVAL` per join or leave, and nothing is counted while the BOT is disconnected.
+- Voice time is per Guild only (no `member` label), to keep the number of series low on busy Guilds. Total minutes spent in calls: `sum(discord_voice_seconds_total) / 60`.
+- Event voice metrics cover the voice and stage channels of the Guild's scheduled Events, only while they are in progress (not before they start, nor after they end). External Events (a link, a place) can't be measured.
+- Event voice is a part of the voice metrics, not on top of them: members in an Event are in a call too. Time spent in calls outside Events: `sum(discord_voice_seconds_total) - sum(discord_event_voice_seconds_total)`.
+- Unique members are counted over rolling windows (`window` label): the last `1d`, `7d` and `30d`. A member who joins and leaves between two updates (less than one `POLLING_INTERVAL`) is not seen.
+- Unique members are counted per Guild: don't `sum()` them across Guilds, a member in voice on two Guilds would be counted twice.
 - `discord_latency` stays at its last known value while the BOT is not connected (`0` before the first connection).
 - When the BOT leaves a Guild (or a Guild is renamed), its Gauges are removed within one `POLLING_INTERVAL`. Counters are kept.
 
@@ -144,8 +157,9 @@ And use it in `deployment.yaml`:
 
 #### Persistence
 
-Prometheus Counters (messages and reactions) restart from zero with the exporter.  
-To keep them across restarts, set `PERSIST_FILE`: they are saved in it every `PERSIST_TIMER` seconds, and when the exporter stops.
+Prometheus Counters (messages, reactions, voice and event voice time) restart from zero with the exporter, and the unique members windows start empty.  
+To keep them across restarts, set `PERSIST_FILE`: they are saved in it every `PERSIST_TIMER` seconds, and when the exporter stops.  
+For unique members, the file holds the Discord IDs of the members seen in voice in the last 30 days, and when.
 
 The file needs to be on a volume to be useful:
 - Kubernetes: the example uses an `emptyDir`, which survives container restarts, but not the Pod deletion (new deployments included). Use a `PersistentVolumeClaim` to keep the Counters across those.

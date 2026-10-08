@@ -24,13 +24,16 @@ class PersistentCounter:
     Attributes:
         counter (prometheus_client.Counter): The underlying Prometheus Counter.
         _name (str): The metric name.
-        _registry (list): Class-level list of all PersistentCounter instances.
+        _registry (list): Class-level list of all PersistentCounter instances,
+            and of the other persistent metrics saved along (UniqueMembers).
 
     Methods:
         __getattr__(name):
             Forward attribute access to the underlying Counter instance.
         _load_initial_values():
             Load counter values from the persistence file, if present.
+        _state():
+            This counter's entries for the persistence file.
         save_all():
             Class method. Save the state of all registered PersistentCounter instances to disk.
     """
@@ -54,27 +57,36 @@ class PersistentCounter:
         Only loads entries matching this metric's name. If the file is missing,
         empty, or invalid, loading is skipped gracefully.
         """
-        persist_file = env_vars['PERSIST_FILE']
-        if persist_file and os.path.exists(persist_file):
-            try:
-                with open(persist_file, 'r', encoding='utf-8') as f:
-                    state = json.load(f)
-                for key, value in state.items():
-                    if key.startswith(self.counter._name):
-                        label_json = key.split(':', 1)[1]
-                        label_dict = json.loads(label_json)
-                        self.counter.labels(**label_dict).inc(value)
-            except Exception as e:
-                logger.error(f"Error loading persistence file [{persist_file}]: {e}")
-            else:
-                logger.debug(f"Loaded Counter for {self.counter._name}")
+        try:
+            for key, value in read_state().items():
+                metric, _, label_json = key.partition(':')
+                # Exact name: other metrics may share its prefix
+                if metric == f'{self._name}_total':
+                    label_dict = json.loads(label_json)
+                    self.counter.labels(**label_dict).inc(value)
+        except Exception as e:
+            logger.error(f"Error loading persistence file [{env_vars['PERSIST_FILE']}]: {e}")
+        else:
+            if env_vars['PERSIST_FILE']:
+                logger.debug(f"Loaded Counter for {self._name}")
+
+    def _state(self):
+        """This counter's entries for the persistence file, one per label set."""
+        state = {}
+        for metric in self.counter.collect():
+            for sample in metric.samples:
+                if sample.name.endswith('_total') and sample.value > 0:
+                    key = f"{sample.name}:{json.dumps(sample.labels)}"
+                    state[key] = sample.value
+        return state
 
     @classmethod
     def save_all(cls):
         """
         Save the state of all registered PersistentCounter instances to disk.
 
-        This method collects all label/value pairs from all counters and writes
+        This method collects the entries of every registered instance (counters,
+        and any other persistent metric providing a _state() method) and writes
         them to the persistence file as a single JSON object. Should be called
         periodically by a single thread or timer.
         """
@@ -82,11 +94,7 @@ class PersistentCounter:
         if persist_file:
             state = {}
             for instance in cls._registry:
-                for metric in instance.counter.collect():
-                    for sample in metric.samples:
-                        if sample.name.endswith('_total') and sample.value > 0:
-                            key = f"{sample.name}:{json.dumps(sample.labels)}"
-                            state[key] = sample.value
+                state.update(instance._state())
             if state:  # Only write if state is not empty
                 cls._write_atomic(persist_file, state)
                 logger.trace(f"Saved Counter persistence [{persist_file}]")
@@ -112,6 +120,15 @@ class PersistentCounter:
         except BaseException:
             os.unlink(tmp_file)
             raise
+
+
+def read_state():
+    """Content of the persistence file, empty if disabled or missing."""
+    persist_file = env_vars['PERSIST_FILE']
+    if persist_file and os.path.exists(persist_file):
+        with open(persist_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
 
 
 def periodic_save():

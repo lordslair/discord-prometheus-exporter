@@ -23,12 +23,32 @@ def sample(name, **labels):
     return REGISTRY.get_sample_value(name, labels) or 0
 
 
+class FakeChannel:
+    def __init__(self):
+        self.id = next(_ids)
+
+
+class FakeEvent:
+    def __init__(self, location, status=discord.ScheduledEventStatus.active):
+        # A channel, or a text for an external Event
+        self.location = type('ScheduledEventLocation', (), {'value': location})
+        self.status = status
+
+
+class FakeVoiceState:
+    def __init__(self, channel):
+        self.channel = channel
+
+
 class FakeMember:
-    def __init__(self, bot=False, status=discord.Status.online, guild=None):
+    def __init__(self, bot=False, status=discord.Status.online, guild=None, voice=None):
         self.name = unique('member')
+        self.id = next(_ids)
         self.bot = bot
         self.status = status
         self.guild = guild
+        # The voice channel the member is in, None if not in voice
+        self.voice = None if voice is None else FakeVoiceState(voice)
 
     # Labels are set from the objects themselves, like discord.py's Member
     def __str__(self):
@@ -36,10 +56,15 @@ class FakeMember:
 
 
 class FakeGuild:
-    def __init__(self, members=(), boosts=0):
+    def __init__(self, members=(), boosts=0, afk_channel=None, events=()):
         self.name = unique('guild')
+        self.id = next(_ids)
         self.members = list(members)
         self.premium_subscription_count = boosts
+        self.afk_channel = afk_channel
+        self.scheduled_events = list(events)
+        for member in self.members:
+            member.guild = self
 
     def __str__(self):
         return self.name

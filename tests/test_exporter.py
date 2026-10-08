@@ -11,7 +11,7 @@ from loguru import logger
 from prometheus_client import REGISTRY
 
 import exporter
-from conftest import FakeGuild, FakeMember, sample, unique
+from conftest import FakeChannel, FakeEvent, FakeGuild, FakeMember, sample, unique
 from models.persistent_counter import PersistentCounter
 from variables import env_vars
 
@@ -106,14 +106,20 @@ GUILD_UPDATES = [
     (exporter.update_registered, ['discord_members_registered', 'discord_bots_registered']),
     (exporter.update_online, ['discord_members_online', 'discord_bots_online']),
     (exporter.update_boost, ['discord_boosts']),
+    (exporter.update_voice, [
+        'discord_voice_members', 'discord_event_voice_members',
+        'discord_voice_unique_members', 'discord_event_voice_unique_members',
+        ]),
 ]
 
 
 def exported(metrics, guild):
-    """Whether any of these gauges has a series for this guild."""
+    """Whether any of these gauges has a series for this guild (other labels aside)."""
+    name = guild if isinstance(guild, str) else guild.name
     return any(
-        REGISTRY.get_sample_value(name, {'guild': guild.name}) is not None
-        for name in metrics
+        sample.labels.get('guild') == name
+        for metric in REGISTRY.collect() if metric.name in metrics
+        for sample in metric.samples
         )
 
 
@@ -155,10 +161,7 @@ def test_renamed_guild_keeps_only_its_new_name(fake_client, update, metrics):
     update()
 
     assert exported(metrics, guild)
-    assert not any(
-        REGISTRY.get_sample_value(name, {'guild': old_name}) is not None
-        for name in metrics
-        )
+    assert not exported(metrics, old_name)
 
 
 @pytest.mark.parametrize('update, metrics', GUILD_UPDATES)
@@ -180,6 +183,337 @@ def test_updates_without_guilds(fake_client):
     exporter.update_registered()
     exporter.update_online()
     exporter.update_boost()
+    exporter.update_voice()
+
+
+#
+# Voice
+#
+
+class FakeClock:
+    def __init__(self):
+        self.now = 1000.0
+
+    def monotonic(self):
+        return self.now
+
+    def time(self):
+        return self.now
+
+
+@pytest.fixture
+def clock(monkeypatch):
+    """Control the time update_voice sees, starting with no previous update."""
+    clock = FakeClock()
+    monkeypatch.setattr(exporter, 'time', clock)
+    monkeypatch.setattr(exporter, 'voice_last_update', None)
+    return clock
+
+
+GENERAL, GAMING = FakeChannel(), FakeChannel()
+
+
+def voice_seconds(guild):
+    return sample('discord_voice_seconds_total', guild=guild.name)
+
+
+def test_update_voice_members(fake_client, clock):
+    afk = FakeChannel()
+    guild = FakeGuild([
+        FakeMember(voice=GENERAL),
+        FakeMember(voice=GENERAL),
+        FakeMember(voice=GAMING),
+        FakeMember(),
+        FakeMember(voice=afk),
+        FakeMember(bot=True, voice=GENERAL),
+    ], afk_channel=afk)
+    fake_client.guilds = [guild]
+
+    exporter.update_voice()
+
+    # Any voice channel but the AFK one, bots excluded
+    assert sample('discord_voice_members', guild=guild.name) == 3
+
+
+def test_update_voice_first_update_counts_no_time(fake_client, clock):
+    guild = FakeGuild([FakeMember(voice=GENERAL)])
+    fake_client.guilds = [guild]
+
+    exporter.update_voice()
+
+    # Exported from the start, even before any time is counted
+    assert REGISTRY.get_sample_value(
+        'discord_voice_seconds_total', {'guild': guild.name}) == 0
+
+
+def test_update_voice_counts_time_per_member(fake_client, clock):
+    guild = FakeGuild([
+        FakeMember(voice=GENERAL),
+        FakeMember(voice=GENERAL),
+        FakeMember(bot=True, voice=GENERAL),
+    ])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    clock.now += 10
+    exporter.update_voice()
+
+    assert voice_seconds(guild) == 20
+
+
+def test_update_voice_counts_actual_elapsed_time(fake_client, clock):
+    guild = FakeGuild([FakeMember(voice=GENERAL)])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    # A late update counts the time since the previous one
+    clock.now += 12.5
+    exporter.update_voice()
+    clock.now += 7.5
+    exporter.update_voice()
+
+    assert voice_seconds(guild) == 20
+
+
+def test_update_voice_counts_members_in_voice_at_each_update(fake_client, clock):
+    member = FakeMember()
+    guild = FakeGuild([member, FakeMember(voice=GENERAL)])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    # Joins between two updates: counted since the previous one
+    member.voice = FakeMember(voice=GENERAL).voice
+    clock.now += 10
+    exporter.update_voice()
+
+    # Leaves: not counted anymore
+    member.voice = None
+    clock.now += 10
+    exporter.update_voice()
+
+    assert voice_seconds(guild) == 2 * 10 + 1 * 10
+    assert sample('discord_voice_members', guild=guild.name) == 1
+
+
+def test_update_voice_counts_each_guild_separately(fake_client, clock):
+    first = FakeGuild([FakeMember(voice=GENERAL)])
+    second = FakeGuild([FakeMember(voice=GENERAL), FakeMember(voice=GENERAL)])
+    fake_client.guilds = [first, second]
+    exporter.update_voice()
+
+    clock.now += 10
+    exporter.update_voice()
+
+    assert voice_seconds(first) == 10
+    assert voice_seconds(second) == 20
+
+
+def test_update_voice_skips_disconnections(fake_client, clock):
+    guild = FakeGuild([FakeMember(voice=GENERAL)])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    # Reconnecting for a while: unknown voice states, nothing counted
+    fake_client.ready = False
+    clock.now += 10
+    exporter.update_voice()
+    clock.now += 300
+    fake_client.ready = True
+    exporter.update_voice()
+
+    # Counting again from the first update once ready
+    clock.now += 10
+    exporter.update_voice()
+
+    assert voice_seconds(guild) == 10
+
+
+def test_update_voice_keeps_time_of_left_guild(fake_client, clock):
+    staying = FakeGuild([FakeMember(voice=GENERAL)])
+    leaving = FakeGuild([FakeMember(voice=GENERAL)])
+    fake_client.guilds = [staying, leaving]
+    exporter.update_voice()
+    clock.now += 10
+    exporter.update_voice()
+
+    fake_client.guilds = [staying]
+    clock.now += 10
+    exporter.update_voice()
+
+    # A Counter, kept like messages and reactions
+    assert voice_seconds(leaving) == 10
+    assert voice_seconds(staying) == 20
+
+
+def event_seconds(guild):
+    return sample('discord_event_voice_seconds_total', guild=guild.name)
+
+
+def test_update_voice_event_members(fake_client, clock):
+    stage, external = FakeChannel(), 'https://example.com/live'
+    guild = FakeGuild([
+        FakeMember(voice=stage),
+        FakeMember(voice=stage),
+        FakeMember(voice=GENERAL),
+        FakeMember(voice=GAMING),
+        FakeMember(),
+        FakeMember(bot=True, voice=stage),
+    ], events=[
+        FakeEvent(stage),
+        FakeEvent(GAMING, status=discord.ScheduledEventStatus.scheduled),
+        FakeEvent(external),
+    ])
+    fake_client.guilds = [guild]
+
+    exporter.update_voice()
+
+    # Only the channels of Events in progress, bots excluded
+    assert sample('discord_event_voice_members', guild=guild.name) == 2
+    # Members in an Event are in voice too
+    assert sample('discord_voice_members', guild=guild.name) == 4
+
+
+def test_update_voice_without_events(fake_client, clock):
+    guild = FakeGuild([FakeMember(voice=GENERAL)])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    clock.now += 10
+    exporter.update_voice()
+
+    # Exported from the start, even without any Event
+    assert sample('discord_event_voice_members', guild=guild.name) == 0
+    assert REGISTRY.get_sample_value(
+        'discord_event_voice_seconds_total', {'guild': guild.name}) == 0
+    assert voice_seconds(guild) == 10
+
+
+def test_update_voice_counts_event_time(fake_client, clock):
+    stage = FakeChannel()
+    event = FakeEvent(stage, status=discord.ScheduledEventStatus.scheduled)
+    guild = FakeGuild([
+        FakeMember(voice=stage),
+        FakeMember(voice=stage),
+        FakeMember(voice=GENERAL),
+    ], events=[event])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    # Waiting in the channel before the Event starts: voice time only
+    clock.now += 10
+    exporter.update_voice()
+
+    event.status = discord.ScheduledEventStatus.active
+    clock.now += 20
+    exporter.update_voice()
+
+    event.status = discord.ScheduledEventStatus.completed
+    clock.now += 10
+    exporter.update_voice()
+
+    assert event_seconds(guild) == 2 * 20
+    assert voice_seconds(guild) == 3 * 40
+
+
+def test_update_voice_counts_events_of_each_guild_separately(fake_client, clock):
+    stage = FakeChannel()
+    first = FakeGuild([FakeMember(voice=stage)], events=[FakeEvent(stage)])
+    # Same channel, but no Event on this guild
+    second = FakeGuild([FakeMember(voice=stage)])
+    fake_client.guilds = [first, second]
+    exporter.update_voice()
+
+    clock.now += 10
+    exporter.update_voice()
+
+    assert event_seconds(first) == 10
+    assert event_seconds(second) == 0
+
+
+DAY = 86400
+
+
+def unique_members(guild, window, metric='discord_voice_unique_members'):
+    return sample(metric, guild=guild.name, window=window)
+
+
+def test_update_voice_unique_members(fake_client, clock):
+    alice, bob = FakeMember(voice=GENERAL), FakeMember(voice=GENERAL)
+    guild = FakeGuild([alice, bob, FakeMember(), FakeMember(bot=True, voice=GENERAL)])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    # Bob leaves: still seen within the windows
+    bob.voice = None
+    clock.now += 10
+    exporter.update_voice()
+
+    # Alice again: counted once
+    clock.now += 10
+    exporter.update_voice()
+
+    for window in ('1d', '7d', '30d'):
+        assert unique_members(guild, window) == 2
+
+
+def test_update_voice_unique_members_windows(fake_client, clock):
+    alice, bob, carol = FakeMember(), FakeMember(), FakeMember()
+    guild = FakeGuild([alice, bob, carol])
+    fake_client.guilds = [guild]
+
+    def call(member):
+        """The member joins voice for one update, then leaves."""
+        member.voice = FakeMember(voice=GENERAL).voice
+        exporter.update_voice()
+        member.voice = None
+
+    call(alice)
+    clock.now += 7 * DAY
+    call(bob)
+    clock.now += 2 * DAY
+    call(carol)
+
+    # Seen 9 days ago, 2 days ago, and now
+    assert unique_members(guild, '1d') == 1
+    assert unique_members(guild, '7d') == 2
+    assert unique_members(guild, '30d') == 3
+
+
+def test_update_voice_unique_members_expire(fake_client, clock):
+    guild = FakeGuild([FakeMember(voice=GENERAL)])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    guild.members[0].voice = None
+    clock.now += 30 * DAY + 1
+    exporter.update_voice()
+
+    assert unique_members(guild, '30d') == 0
+    # Forgotten, not only out of the windows
+    assert str(guild.id) not in exporter.METRICS['VOICE_UNIQUE_MEMBERS']._seen
+
+
+def test_update_voice_event_unique_members(fake_client, clock):
+    stage = FakeChannel()
+    event = FakeEvent(stage)
+    guild = FakeGuild([
+        FakeMember(voice=stage),
+        FakeMember(voice=stage),
+        FakeMember(voice=GENERAL),
+        FakeMember(bot=True, voice=stage),
+    ], events=[event])
+    fake_client.guilds = [guild]
+    exporter.update_voice()
+
+    # After the Event: members in its channel aren't in an Event anymore
+    event.status = discord.ScheduledEventStatus.completed
+    guild.members[2].voice = FakeMember(voice=stage).voice
+    clock.now += 10
+    exporter.update_voice()
+
+    metric = 'discord_event_voice_unique_members'
+    assert unique_members(guild, '1d', metric) == 2
+    assert unique_members(guild, '1d') == 3
 
 
 #

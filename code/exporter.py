@@ -6,6 +6,7 @@ import discord
 import math
 import sys
 import threading
+import time
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from prometheus_client import start_http_server
@@ -91,14 +92,16 @@ def prune_guilds(*keys):
         return
     current = {str(guild) for guild in client.guilds}
     for key in keys:
-        exported = {
-            sample.labels['guild']
+        # All the labels of each series, to remove it (guild, and maybe others)
+        stale = {
+            tuple(sample.labels.values())
             for metric in METRICS[key].collect()
             for sample in metric.samples
+            if sample.labels['guild'] not in current
             }
-        for guild in exported - current:
-            METRICS[key].remove(guild)
-            logger.debug(f'[Exporter] Removed guild [{guild}] from {key}')
+        for labels in stale:
+            METRICS[key].remove(*labels)
+            logger.debug(f'[Exporter] Removed {labels} from {key}')
 
 
 def update_registered():
@@ -135,6 +138,71 @@ def update_boost():
     for guild in client.guilds:
         METRICS['BOOSTS'].labels(guild=guild).set(guild.premium_subscription_count)
     prune_guilds('BOOSTS')
+
+
+# When update_voice last ran (monotonic clock), None to start counting afresh
+voice_last_update = None
+
+
+def in_voice(member):
+    """Whether this member is in a call: any voice channel but the AFK one."""
+    voice = member.voice
+    if voice is None or voice.channel is None:
+        return False
+    return voice.channel != member.guild.afk_channel
+
+
+def event_channels(guild):
+    """IDs of the voice and stage channels of the Events in progress on a guild."""
+    return {
+        event.location.value.id
+        for event in guild.scheduled_events
+        if event.status is discord.ScheduledEventStatus.active
+        # External Events (a link, a place) have a text location: no channel
+        and not isinstance(event.location.value, str)
+        }
+
+
+def update_voice():
+    global voice_last_update
+
+    # Until ready (startup, reconnection), voice states aren't up to date:
+    # restart counting from the next update, instead of counting the whole
+    # disconnection with the members that were in voice before it
+    if not client.is_ready():
+        voice_last_update = None
+        return
+
+    now = time.monotonic()
+    # Actual time since the previous update, not POLLING_INTERVAL: the loop
+    # drifts, and an update can be late
+    elapsed = 0 if voice_last_update is None else now - voice_last_update
+    voice_last_update = now
+    # Wall clock for the unique members: their last seen times survive restarts
+    seen_at = time.time()
+
+    for guild in client.guilds:
+        in_call = [
+            member for member in guild.members
+            if member.bot is False and in_voice(member)
+            ]
+        events = event_channels(guild)
+        in_event = [member for member in in_call if member.voice.channel.id in events]
+
+        METRICS['VOICE_MEMBERS'].labels(guild=guild).set(len(in_call))
+        METRICS['VOICE_SECONDS'].labels(guild=guild).inc(len(in_call) * elapsed)
+        # A subset of the voice ones: members in an Event are in a call too
+        METRICS['EVENT_VOICE_MEMBERS'].labels(guild=guild).set(len(in_event))
+        METRICS['EVENT_VOICE_SECONDS'].labels(guild=guild).inc(len(in_event) * elapsed)
+        METRICS['VOICE_UNIQUE_MEMBERS'].update(guild, in_call, seen_at)
+        METRICS['EVENT_VOICE_UNIQUE_MEMBERS'].update(guild, in_event, seen_at)
+
+    METRICS['VOICE_UNIQUE_MEMBERS'].expire(seen_at)
+    METRICS['EVENT_VOICE_UNIQUE_MEMBERS'].expire(seen_at)
+    prune_guilds(
+        'VOICE_MEMBERS', 'EVENT_VOICE_MEMBERS',
+        'VOICE_UNIQUE_MEMBERS', 'EVENT_VOICE_UNIQUE_MEMBERS',
+        )
 
 
 async def poll(update, timer):
@@ -196,7 +264,7 @@ def main():
     periodic_save()
 
     # Scheduled Tasks (Launched every POLLING_INTERVAL seconds)
-    for update in (update_ping, update_registered, update_online, update_boost):
+    for update in (update_ping, update_registered, update_online, update_boost, update_voice):
         client.loop.create_task(poll(update, env_vars['POLLING_INTERVAL']))
 
     start_http_server(env_vars['EXPORTER_PORT'])
